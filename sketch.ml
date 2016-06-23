@@ -89,6 +89,9 @@ module Primitives : sig
   val axis : Viewport.t -> image
 
   val cloud : Viewport.t -> (float * float) list -> image
+
+  val curve : Viewport.t -> (float -> float) -> image
+
 end
 =
 struct
@@ -110,26 +113,38 @@ let rec traitement_xx x i = if fst x <= (fst i) then [] else (fst i, 0.) :: trai
 
 let rec traitement_y y i = if snd y <= (snd i) then [] else (0., snd i) :: traitement_y y (0., snd i +. 0.1)
 
-let axis_x vp = 
- let f accu (x, y) = 
-      let p = Viewport.scale vp (x,y) in 
-      let i = I.move p marqueur_abs in 
-      I.blend i accu in 
-    let init = I.const Color.green in
-    List.fold_left f init (traitement_xx (2. , 0.) (0. , 0.))
+(*
+let cadre_vide = 
+  let square =  P.empty >> P.rect (Box2.v P2.o (P2.v  10. 10.)) in
+  let area = `O { P.o with P.width = 0.01; dashes = Some (0., [0.]); } in
+  I.const (Color.gray 0.6) >> I.cut ~area square
+*)
 
 
-  let axis vp = 
-    let f accu (x, y) = 
-      let p = Viewport.scale vp (x,y) in 
-      let i = I.move p marqueur_abs in 
-      I.blend i accu in 
-    List.fold_left f (axis_x vp) (traitement_y (0. , 2.) (0. , 0.))
+
+let cadre_vide =
+  let square = P.empty >> P.rect (Box2.v  (P2.v 1. 1.) (P2.v 10. 10.)) in 
+let area = `O { P.o with P.width = 0.01; dashes = Some (0., [0.]); } in
+ I.const (Color.gray 0.1) >> I.cut ~area square (* in
+ let o = Viewport.scale vp (0. , 0.) in
+let oo = I.move o cadre_vide in
+ I.blend oo I.void *)
+
+let axis_x vp =
+  let f accu (x, y) =
+    let p = Viewport.scale vp (x,y) in 
+    let i = I.move p marqueur_abs in 
+    I.blend i accu in 
+  List.fold_left f cadre_vide  (traitement_xx (2. , 0.) (0. , 0.))
+
+let axis vp = 
+  let f accu (x, y) = 
+    let p = Viewport.scale vp (x,y) in 
+    let i = I.move p marqueur_abs in 
+    I.blend i accu in 
+  List.fold_left f (axis_x vp) (traitement_y (0. , 2.) (0. , 0.))
 
  
-
-
-
  (*----------------------------------------------------*)
   let gray = I.const (Color.gray 0.5)
   let circle = P.empty >> P.circle P2.o(*cercle v avec centre 0.5 et 0.5 et rayon 0.4*) 0.05
@@ -153,10 +168,13 @@ let cadre_vide width =
     let f accu (x, y) =
       let p = Viewport.scale vp (x,y) in 
       let i = I.move p point in 
-      I.blend i accu
+      I.blend i accu 
     in
-    let init = I.const Color.void in
-    List.fold_left f init l
+   
+    List.fold_left f (axis vp) l
+
+
+  let curve vp  = assert false
 
 end
 
@@ -187,7 +205,9 @@ struct
     let ylim = list_min_max (List.map snd l) in 
     let vp = Viewport.make ~xlim ~ylim () in 
     { 
-     image = Primitives.axis vp  ;
+     image = Primitives.cloud vp l ;
+     (*image = Primitives.axis vp pour test=$
+*)
      (*axis = Primitives.cloud vp;*)
       viewport = vp ;
     }
