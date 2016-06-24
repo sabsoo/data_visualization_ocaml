@@ -183,7 +183,6 @@ module Plot : sig
  
   val to_svg : t -> string -> unit
   val scatter_plot : (float * float) list -> t
-(* val scatter_axis : (float * float) list -> t*)
 end
 =
 struct
@@ -206,8 +205,7 @@ struct
     let vp = Viewport.make ~xlim ~ylim () in 
     { 
      image = Primitives.cloud vp l ;
-     (*image = Primitives.axis vp pour test=$
-*)
+     (*image = Primitives.axis vp pour test*)
      (*axis = Primitives.cloud vp;*)
       viewport = vp ;
     }

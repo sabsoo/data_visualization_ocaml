@@ -107,7 +107,7 @@ let normal_pts count =
 (*modifier 1. et 1. reduire de 0.1 pour le titre , faire des modulo *)
 let cadre_vide width = 
   let square = P.empty >> P.rect (Box2.v P2.o (P2.v 0.95 0.95)) in(*on donne moins de 1 pour que le reste soit occupé par le titre , P2. o pour le mettre tout a gauche , sinon mettre composant*)
-  let area = `O { P.o with P.width = width; dashes = Some (0., [0.]); } in
+  let area = `O { P.o with P.width = width; dashes = Some (2., [0.]); } in
   I.const (Color.gray 0.6) >> I.cut ~area square
 
 let () = svg_of_usquare "cadre_vide.svg" Box2.unit (cadre_vide 0.01)
@@ -293,3 +293,53 @@ let grayb = I.const (Color.gray 0.5)
 let x_marqueurb = P.empty >> P.rect (Box2.v P2.o (Size2.v 0.005 0.015)) 
 let marqueur_absb = I.cut x_marqueurb grayb
    let () =svg_of_usquare "marqueurb.svg" Box2.unit  marqueur_absb 
+
+
+
+(*test path*)
+    let g = I.const (Color.gray 0.3)
+    let white = I.const Color.white 
+    let wedge =
+      P.empty >>
+      P.sub (P2.v 0.2 0.) >> P.line (P2.v 0.5 0.5) >> P.line (P2.v 0.8 0.)
+   
+    let path x join =
+      let area = (`O { P.o with P.width = 0.2; join }) in
+      let outline = I.cut ~area wedge g in
+      let data = I.cut ~area:(`O { P.o with P.width = 0.01 }) wedge white in
+      outline >> I.blend data >> I.move (P2.v x 0.2) 
+
+  let path_test =  (path 0. `Round) >> I.blend (path 1. `Round) >> I.blend (path 2. `Bevel)
+ 
+let () = svg_of_usquare "path_test.svg" Box2.unit path_test
+
+
+(*test_subpath*)
+(*idee , prendre cette fonciton et creer a vec le prmier sub la ligne de courbe , exemple les arguments de sub peuvent etre x et y , ensuite fonction recursive qui repete cette action jusqu a la fin de la liste*)
+    let p =
+      let rel = true in
+      P.empty >>
+      P.sub (P2.v 0.1 0.5) >>
+        P.line (P2.v 0.3 0.5) >>
+        P.qcurve ~rel (P2.v 0.2 0.5) (P2.v 0.2 0.0) >>
+        P.ccurve ~rel (P2.v 0.0 (-. 0.5)) (P2.v 0.1 (-. 0.5)) (P2.v 0.3 0.0) >>
+        P.earc ~rel (Size2.v 0.1 0.2) (P2.v 0.15 0.0) >>
+      P.sub (P2.v 0.18 0.26) >>
+        P.qcurve ~rel (P2.v (0.01) (-0.1)) (P2.v 0.1 (-. 0.05)) >>
+        P.close >>
+      P.sub (P2.v 0.65 0.8) >>
+      P.line ~rel (P2.v 0.1 (-. 0.05))
+
+ let area = `O { P.o with P.width = 0.01 } 
+let p_area =  I.const Color.black >> I.cut ~area p
+
+let () = svg_of_usquare "p_area.svg" Box2.unit p_area
+
+
+(*test bordure *)
+let square_t = P.empty >> P.rect (Box2.v P2.o (P2.v 1. 1.))
+let area = `O { P.o with P.width = 0.2; dashes = Some (0., [0.05]); }
+let test_bord = I.const (Color.gray 0.3) >> I.cut ~area square
+let () = svg_of_usquare "test_bord.svg" Box2.unit test_bord
+
+
