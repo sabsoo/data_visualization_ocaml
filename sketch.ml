@@ -1,8 +1,7 @@
-(*
 
+(*
 #use "topfind";;
 #require "vg.pdf";;
-
   ocamlfind ocamlopt -package gg,vg,vg.svg \
                      -linkpkg -o sketch.native sketch.ml && ./sketch.native
 *)
@@ -90,7 +89,7 @@ module Primitives : sig
 
   val cloud : Viewport.t -> (float * float) list -> image
 
-  val curve : Viewport.t -> (float -> float) -> image
+  val curve : Viewport.t -> (float * float) list -> image
 
 end
 =
@@ -174,7 +173,39 @@ let cadre_vide width =
     List.fold_left f (axis vp) l
 
 
-  let curve vp  = assert false
+let funct x = ( x +. 1. ) *. ( x +. 2. )
+
+(*fonction qui prend une fonction et un intervalle et sort une liste de valeurs*)
+
+type point = {antecedent : float ; image : float}
+
+(*let x1 = {antecedent = 1.; image = 4.}*)
+let rec table f inf sup pas = if inf >= sup then [] else (inf , f inf) :: table f (inf +. pas) sup pas  
+(* table funct 3. 6. 1.;;
+- : float list = [20.; 30.; 42.] *)
+
+
+let chemin =  
+  let rel = true in P.empty >> P.sub (P2.v 0.1 0.1) >> 
+  P.line (P2.v 0. 0.) >>  P.line ~rel (P2.v 0.1 0.102) >> 
+  P.qcurve ~rel (P2.v 0.2 0.5) (P2.v 0.2 0.0) >>  
+  P.ccurve ~rel (P2.v 0.0 (-. 0.5)) (P2.v 0.1 (-. 0.5)) (P2.v 0.3 0.0) >>P.close
+let p_area = I.cut chemin (I.const Color.black)
+(*let () = svg_of_usquare "chemin.svg" Box2.unit p_area*)
+
+let cheminn x y = let rel = true in  
+ P.empty >> P.sub (P2.v 0.1 0.1) >> P.line (P2.v 0. 0.) >> P.line ~rel (P2.v x y) 
+let  pp_area x y = I.cut (cheminn x y)(I.const Color.black)
+(*let () = svg_of_usquare "cheminn.svg" Box2.unit (pp_area 0.101 0.10)*)
+
+
+let curve vp l = assert false
+(* let f accu (x, y) =
+   let p = Viewport.scale vp (x,y) in 
+   let i = I.move p point in 
+   I.blend i accu 
+ in
+ List.fold_left f (axis vp) l*)
 
 end
 
@@ -242,4 +273,3 @@ let cadre_vide width =
 
 let () =
   Plot.to_svg (Plot.scatter_plot (list_init 100 Random.float 1.)) "scatter_plot.svg"
-

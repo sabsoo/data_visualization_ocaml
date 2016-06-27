@@ -343,3 +343,28 @@ let test_bord = I.const (Color.gray 0.3) >> I.cut ~area square
 let () = svg_of_usquare "test_bord.svg" Box2.unit test_bord
 
 
+let chemin =  
+  let rel = true in P.empty >> P.sub (P2.v 0.1 0.1) >> 
+  P.line (P2.v 0. 0.) >>  P.line ~rel (P2.v 0.1 0.102) >> 
+  P.qcurve ~rel (P2.v 0.2 0.5) (P2.v 0.2 0.0) >>  
+  P.ccurve ~rel (P2.v 0.0 (-. 0.5)) (P2.v 0.1 (-. 0.5)) (P2.v 0.3 0.0) >>P.close
+let p_area = I.cut chemin (I.const Color.black)
+    
+let () = svg_of_usquare "chemin.svg" Box2.unit p_area
+
+let cheminn  = let rel = true in  
+ P.empty >> P.sub (P2.v 0.1 0.1) >> P.line (P2.v 0.101 0.1) >> P.line ~rel (P2.v 0.101 0.10) 
+let  pp_area = I.cut cheminn (I.const Color.black)
+let () = svg_of_usquare "cheminn.svg" Box2.unit pp_area
+
+
+
+
+let cheminn_pas pas  = let rel = true in  
+ P.empty >> P.sub (P2.v (0.1+.pas)  (0.1+. pas)) >> P.line P2.o >> P.line ~rel (P2.v 0.101 0.10)
+
+let rec cheminot pas c =  if c = 0 then cheminn_pas pas else cheminot pas (c - 1)
+let pas_area_c pas c= I.cut (cheminot pas c ) (I.const Color.black) 
+let paspap pas c = I.blend (pas_area_c pas c) gray
+
+let () = svg_of_usquare "chemin_pas.svg" Box2.unit (paspap 0.1 10)
