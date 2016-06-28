@@ -117,7 +117,7 @@ let marqueur_abs = I.cut x_marqueur gray
     
 let t_marqueur pt = marqueur_abs >> I.move pt
  
-(*une image qui cree la marque a cette position et qui l ajoute dans accu *)
+(*une fnct qui cree la marque a cette position et qui l ajoute dans accu *)
 let fa_abs accu position =  I.blend (t_marqueur position) accu
     
 (*fonction qui prend un float et cree un point en ajoutant 0.1 au composant x*)
@@ -343,28 +343,62 @@ let test_bord = I.const (Color.gray 0.3) >> I.cut ~area square
 let () = svg_of_usquare "test_bord.svg" Box2.unit test_bord
 
 
-let chemin =  
-  let rel = true in P.empty >> P.sub (P2.v 0.1 0.1) >> 
-  P.line (P2.v 0. 0.) >>  P.line ~rel (P2.v 0.1 0.102) >> 
-  P.qcurve ~rel (P2.v 0.2 0.5) (P2.v 0.2 0.0) >>  
-  P.ccurve ~rel (P2.v 0.0 (-. 0.5)) (P2.v 0.1 (-. 0.5)) (P2.v 0.3 0.0) >>P.close
-let p_area = I.cut chemin (I.const Color.black)
-    
-let () = svg_of_usquare "chemin.svg" Box2.unit p_area
 
-let cheminn  = let rel = true in  
- P.empty >> P.sub (P2.v 0.1 0.1) >> P.line (P2.v 0.101 0.1) >> P.line ~rel (P2.v 0.101 0.10) 
-let  pp_area = I.cut cheminn (I.const Color.black)
-let () = svg_of_usquare "cheminn.svg" Box2.unit pp_area
+  let path x join =
+      let area = (`O { P.o with P.width = 0.2; join }) in
+      let outline = I.cut ~area wedge g in
+      let data = I.cut ~area:(`O { P.o with P.width = 0.01 }) wedge white in
+      outline >> I.blend data >> I.move (P2.v x 0.2) 
 
 
+(*fonction qui prend un couple et trace un segment jusqu'a ce point
+float * float -> Vg.image
+*)
 
 
-let cheminn_pas pas  = let rel = true in  
- P.empty >> P.sub (P2.v (0.1+.pas)  (0.1+. pas)) >> P.line P2.o >> P.line ~rel (P2.v 0.101 0.10)
+let chem_t c_prec c_suiv = c_prec >> c_suiv 
 
-let rec cheminot pas c =  if c = 0 then cheminn_pas pas else cheminot pas (c - 1)
-let pas_area_c pas c= I.cut (cheminot pas c ) (I.const Color.black) 
-let paspap pas c = I.blend (pas_area_c pas c) gray
+let chemin cpl c_suiv = let rel= true in 
+ let chem = P.empty >>  P.line (P2.v (fst cpl) (snd cpl)) >> P.line (P2.v ((fst cpl) +. 0.002) ((snd cpl) +. 0.002)) in
+let chem_n = chem >> P.line (P2.v 0.4 0.5) in 
+let c =  chem_n >> c_suiv in
+let d = c >> P.line (P2.v 0.7 0.6) in
+let e = d >> P.line  (P2.v 0.7 0.5)  in
+let p_a = I.cut e (I.const Color.black ) in
+I.blend p_a gray
 
-let () = svg_of_usquare "chemin_pas.svg" Box2.unit (paspap 0.1 10)
+let () = svg_of_usquare "chemin.svg" Box2.unit (chemin (0.1 , 0.2) (P.line (P2.v 0.6 0.6)))
+
+let rec table f inf sup pas  = if inf >= sup then [] else (inf , f inf) :: table f (inf +. pas) sup pas 
+(*
+let chemin_init inf =  P.empty >>  P.line (P2.v inf inf)>> P.line (P2.v ( inf +. 0.002) ( inf +. 0.002)) 
+let fa position accu =I.blend ( I.cut (accu >> P.line (P2.v (fst position) (snd position))  ) constant_image ) gray
+let () = svg_of_usquare "fa.svg" Box2.unit (fa (0.5 , 0.5) (chemin_init 0.2) )*)
+
+(*
+let funct x = ( x +. 1. ) *. ( x +. 2. )
+
+let b l inf sup pas = List.fold_left (chemin (0.8,0.2)) ( table (funct fst inf) inf sup pas )*)
+
+ 
+(*
+let ch l inf sup pas = 
+let chemin_init =  P.empty >>  P.line (P2.v (fst inf) (snd inf))>> P.line (P2.v ((fst inf) +. 0.002) ((snd inf) +. 0.002)) in 
+let chem_suiv = chemin_init >> P.line (P2.v ((fst inf) +. pas) ((snd inf) +. pas)) 
+*)
+
+(*
+let chemin_init inf =  P.empty >>  P.line (P2.v inf inf)>> P.line (P2.v ( inf +. 0.002) ( inf +. 0.002)) 
+let chem_suiv inf pas = chemin_init inf >> P.line (P2.v (inf +. pas) (inf +. pas)) 
+
+let rec chmn inf sup pas i = 
+  if i = sup then chemin_init inf 
+  else chmn inf sup pas (i+. pas ) 
+let ch inf sup pas = chmn inf sup pas 0.
+
+ let c_ch inf sup pas= I.cut (ch inf sup pas) (I.const Color.black ) 
+let b_ch inf sup pas = I.blend (c_ch inf sup pas) gray
+let () = svg_of_usquare "mbeeeeee.svg" Box2.unit (b_ch 0.1 0.8 0.2) *)
+
+
+

@@ -182,7 +182,7 @@ type point = {antecedent : float ; image : float}
 (*let x1 = {antecedent = 1.; image = 4.}*)
 let rec table f inf sup pas = if inf >= sup then [] else (inf , f inf) :: table f (inf +. pas) sup pas  
 (* table funct 3. 6. 1.;;
-- : float list = [20.; 30.; 42.] *)
+- : (float * float) list = [(3., 20.); (4., 30.); (5., 42.)]*)
 
 
 let chemin =  
@@ -197,6 +197,19 @@ let cheminn x y = let rel = true in
  P.empty >> P.sub (P2.v 0.1 0.1) >> P.line (P2.v 0. 0.) >> P.line ~rel (P2.v x y) 
 let  pp_area x y = I.cut (cheminn x y)(I.const Color.black)
 (*let () = svg_of_usquare "cheminn.svg" Box2.unit (pp_area 0.101 0.10)*)
+
+
+
+
+let cheminn_pas pas  = let rel = true in  
+ P.empty >> P.sub (P2.v (0.1+.pas)  (0.1+. pas)) >> P.line P2.o >> P.line ~rel (P2.v 0.101 0.10)
+
+let rec cheminot pas c =  if c = 0 then cheminn_pas pas else cheminot pas (c - 1) 
+let pas_area_c pas c= I.cut (cheminot pas c ) (I.const Color.black) 
+let paspap pas c = I.blend (pas_area_c pas c) gray
+
+let () = svg_of_usquare "chemin_pas.svg" Box2.unit (paspap 0.1 10)
+
 
 
 let curve vp l = assert false
