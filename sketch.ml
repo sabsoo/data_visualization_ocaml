@@ -155,12 +155,6 @@ let axis vp =
     I.cut ~area  circle black
       
   let point = I.blend  gray_circle circle_outline 
-      
-(*
-let cadre_vide width = 
-  let square = P.empty >> P.rect (Box2.v P2.o (P2.v 10. 10.)) in
-  let area = `O { P.o with P.width = width; dashes = Some (0., [0.]); } in
-  I.const (Color.gray 0.1) >> I.cut ~area square*)
 
 
   let cloud vp l =
@@ -173,52 +167,16 @@ let cadre_vide width =
     List.fold_left f (axis vp) l
 
 
-let funct x = ( x +. 1. ) *. ( x +. 2. )
 
-(*fonction qui prend une fonction et un intervalle et sort une liste de valeurs*)
+let curve vp l =
+  let f vp accu position = 
+    accu >> P.line  ( Viewport.scale vp position)
+  in
+  let p = List.fold_left (f vp) P.empty l in
+  I.cut p (I.const Color.black) 
+ (* I.blend (axis vp) i*)
+(* List.fold_left (funct vp acc e ->f vp acc e) P.empty l *)
 
-type point = {antecedent : float ; image : float}
-
-(*let x1 = {antecedent = 1.; image = 4.}*)
-let rec table f inf sup pas = if inf >= sup then [] else (inf , f inf) :: table f (inf +. pas) sup pas  
-(* table funct 3. 6. 1.;;
-- : (float * float) list = [(3., 20.); (4., 30.); (5., 42.)]*)
-
-
-let chemin =  
-  let rel = true in P.empty >> P.sub (P2.v 0.1 0.1) >> 
-  P.line (P2.v 0. 0.) >>  P.line ~rel (P2.v 0.1 0.102) >> 
-  P.qcurve ~rel (P2.v 0.2 0.5) (P2.v 0.2 0.0) >>  
-  P.ccurve ~rel (P2.v 0.0 (-. 0.5)) (P2.v 0.1 (-. 0.5)) (P2.v 0.3 0.0) >>P.close
-let p_area = I.cut chemin (I.const Color.black)
-(*let () = svg_of_usquare "chemin.svg" Box2.unit p_area*)
-
-let cheminn x y = let rel = true in  
- P.empty >> P.sub (P2.v 0.1 0.1) >> P.line (P2.v 0. 0.) >> P.line ~rel (P2.v x y) 
-let  pp_area x y = I.cut (cheminn x y)(I.const Color.black)
-(*let () = svg_of_usquare "cheminn.svg" Box2.unit (pp_area 0.101 0.10)*)
-
-
-
-
-let cheminn_pas pas  = let rel = true in  
- P.empty >> P.sub (P2.v (0.1+.pas)  (0.1+. pas)) >> P.line P2.o >> P.line ~rel (P2.v 0.101 0.10)
-
-let rec cheminot pas c =  if c = 0 then cheminn_pas pas else cheminot pas (c - 1) 
-let pas_area_c pas c= I.cut (cheminot pas c ) (I.const Color.black) 
-let paspap pas c = I.blend (pas_area_c pas c) gray
-
-let () = svg_of_usquare "chemin_pas.svg" Box2.unit (paspap 0.1 10)
-
-
-
-let curve vp l = assert false
-(* let f accu (x, y) =
-   let p = Viewport.scale vp (x,y) in 
-   let i = I.move p point in 
-   I.blend i accu 
- in
- List.fold_left f (axis vp) l*)
 
 end
 
@@ -227,9 +185,10 @@ module Plot : sig
  
   val to_svg : t -> string -> unit
   val scatter_plot : (float * float) list -> t
+  val curve_plot : xmin:float -> xmax:float -> (float -> float) -> t
 end
 =
-struct
+struct 
 
   type t = {
      image : image ;
@@ -249,6 +208,7 @@ struct
     let vp = Viewport.make ~xlim ~ylim () in 
     { 
      image = Primitives.cloud vp l ;
+
      (*image = Primitives.axis vp pour test*)
      (*axis = Primitives.cloud vp;*)
       viewport = vp ;
@@ -267,6 +227,24 @@ struct
     with e -> close_out oc; raise e
   with Sys_error e -> prerr_endline e
 
+ 
+
+let rec table f inf sup pas = if inf >= sup then [] else (inf , f inf) :: table f (inf +. pas) sup pas  
+(* table funct 3. 6. 1.;;
+- : (float * float) list = [(3., 20.); (4., 30.); (5., 42.)]*)
+
+let curve_plot ~xmin ~xmax f = 
+  let l = table f xmin xmax 0.1 in 
+  let xlim = list_min_max (List.map fst l) in
+  let ylim = list_min_max (List.map snd l) in 
+  let vp = Viewport.make ~xlim ~ylim () in 
+ { 
+    image = Primitives.curve vp l ;
+    viewport = vp ;
+  }
+
+(*  let scale_tab (x,y) = List.map (Viewport.scale vp (x,y)) tab in *)
+
 end
 
 
@@ -284,5 +262,18 @@ let cadre_vide width =
   let area = `O { P.o with P.width = width; dashes = Some (0., [0.]); } in
   I.const (Color.gray 0.1) >> I.cut ~area square
 
+
+let funct x = ( x +. 1. ) *. ( x +. 2. )
+let f_carre x = x *. x
+
 let () =
   Plot.to_svg (Plot.scatter_plot (list_init 100 Random.float 1.)) "scatter_plot.svg"
+
+let () =
+  Plot.to_svg (Plot.curve_plot (-1.) (1.) cos) "curve_plot_cos.svg"
+let () =
+  Plot.to_svg (Plot.curve_plot (-1.) (1.) sin) "curve_plot_sin.svg"
+let () =
+  Plot.to_svg (Plot.curve_plot (-1.) (1.) funct) "curve_plot_funct.svg"
+let () =
+  Plot.to_svg (Plot.curve_plot (-1.) (1.) f_carre) "curve_plot_carre.svg"

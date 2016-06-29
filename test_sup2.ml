@@ -356,20 +356,42 @@ float * float -> Vg.image
 *)
 
 
-let chem_t c_prec c_suiv = c_prec >> c_suiv 
 
-let chemin cpl c_suiv = let rel= true in 
+let chemin cpl  =  
  let chem = P.empty >>  P.line (P2.v (fst cpl) (snd cpl)) >> P.line (P2.v ((fst cpl) +. 0.002) ((snd cpl) +. 0.002)) in
 let chem_n = chem >> P.line (P2.v 0.4 0.5) in 
-let c =  chem_n >> c_suiv in
+let c =  chem_n >>  P.line (P2.v 0.6 0.6) in
 let d = c >> P.line (P2.v 0.7 0.6) in
 let e = d >> P.line  (P2.v 0.7 0.5)  in
 let p_a = I.cut e (I.const Color.black ) in
 I.blend p_a gray
-
-let () = svg_of_usquare "chemin.svg" Box2.unit (chemin (0.1 , 0.2) (P.line (P2.v 0.6 0.6)))
+let () = svg_of_usquare "chemin.svg" Box2.unit (chemin (0.1 , 0.2))
 
 let rec table f inf sup pas  = if inf >= sup then [] else (inf , f inf) :: table f (inf +. pas) sup pas 
+
+let funct x = ( x +. 1. ) *. ( x +. 2. )
+
+let funct_chemin accu position = position >> accu
+let i_funct_chemin accu position = I.cut (funct_chemin accu position) gray
+let i_blend accu position = I.blend (i_funct_chemin accu position) (cadre 9 0.0)
+(*
+let () = svg_of_usquare "blendage.svg" Box2.unit ( i_blend ( P.line (P2.v 0.4 0.5)) ( P.empty >>  P.line (P2.v 0.1 0.2) >> P.line (P2.v (0.1 +. 0.002) (0.2 +. 0.002))) )*)
+
+
+let f vp accu (x, y) = vp.scale (x,y) in  accu >> P.line (P2.v x y )
+
+
+
+
+let courbe accu position = List.fold_left (i_blend accu position) (cadre 9 0.0) (table (funct inf) inf sup pas )
+
+
+let m = P.empty >> P.line (P2.v 0.4 0.5)
+let tm = m >> P.line (P2.v 0.5 0.6)
+let c_tm = I.cut tm gray
+(*let () = svg_of_usquare "tm.svg" (tm  (V2.v 0.2 0.6) )*) 
+let fa_pp =  I.blend c_tm
+
 (*
 let chemin_init inf =  P.empty >>  P.line (P2.v inf inf)>> P.line (P2.v ( inf +. 0.002) ( inf +. 0.002)) 
 let fa position accu =I.blend ( I.cut (accu >> P.line (P2.v (fst position) (snd position))  ) constant_image ) gray
