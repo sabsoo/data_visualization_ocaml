@@ -259,6 +259,8 @@ let cadre_vide width =
 
 let funct x = ( x +. 1. ) *. ( x +. 2. )
 let f_carre x = x *. x 
+let funct_bez x = x^(1/2)*cos(x)+1
+
 
 let () =
   Plot.to_svg (Plot.scatter_plot (list_init 100 Random.float 1.)) "scatter_plot.svg"
