@@ -99,7 +99,6 @@ let gray = I.const Color.red
 let x_marqueur = P.empty >> P.rect (Box2.v P2.o (Size2.v 0.05 0.05))
 let marqueur_abs = I.cut x_marqueur gray
 
-let traitement_x x = fst x +. 0.2, 0.
 
 let rec list_init_aux n i f r= 
   if n = i then []
@@ -107,46 +106,42 @@ let rec list_init_aux n i f r=
  
 let list_init n f r = list_init_aux n 0 f r
  
- 
-let rec traitement_xx x i = if fst x <= (fst i) then [] else (fst i, 0.) :: traitement_xx x (fst i +. 0.1, 0.)
+ (*
+incremente de 0.1 le premier element du couple (x, y)
+i est un compteur de type couple 
+pas est le pas pour placer les marqueurs : 0.1 en exemple
+ *)
+let rec traitement_x x i pas = if  fst i >= fst x  then [] else (fst i, 0.) :: traitement_x x (fst i +.pas, 0.) pas
 
-let rec traitement_y y i = if snd y <= (snd i) then [] else (0., snd i) :: traitement_y y (0., snd i +. 0.1)
-
+let rec traitement_y y i pas = if  snd i >= snd y  then [] else ( 0., snd i) :: traitement_y y (0., snd i +. pas) pas
 (*
-let cadre_vide = 
-  let square =  P.empty >> P.rect (Box2.v P2.o (P2.v  10. 10.)) in
-  let area = `O { P.o with P.width = 0.01; dashes = Some (0., [0.]); } in
-  I.const (Color.gray 0.6) >> I.cut ~area square
+ (float * float) list =
+[(0., 0.); (0., 0.2); (0., 0.4); (0., 0.600); (0., 0.8); (0., 1.); (0., 1.2); (0., 1.4); (0., 1.59); (0., 1.7999); (0., 1.999)]
 *)
-
-
 
 let cadre_vide =
   let square = P.empty >> P.rect (Box2.v  (P2.v 1. 1.) (P2.v 10. 10.)) in 
 let area = `O { P.o with P.width = 0.01; dashes = Some (0., [0.]); } in
- I.const (Color.gray 0.1) >> I.cut ~area square (* in
- let o = Viewport.scale vp (0. , 0.) in
-let oo = I.move o cadre_vide in
- I.blend oo I.void *)
+ I.const (Color.gray 0.1) >> I.cut ~area square
 
 let axis_x vp =
   let f accu (x, y) =
     let p = Viewport.scale vp (x,y) in 
     let i = I.move p marqueur_abs in 
     I.blend i accu in 
-  List.fold_left f cadre_vide  (traitement_xx (2. , 0.) (0. , 0.))
+  List.fold_left f cadre_vide  (traitement_x (2. , 0.) (0. , 0.) 0.2)
 
 let axis vp = 
   let f accu (x, y) = 
     let p = Viewport.scale vp (x,y) in 
     let i = I.move p marqueur_abs in 
     I.blend i accu in 
-  List.fold_left f (axis_x vp) (traitement_y (0. , 2.) (0. , 0.))
+  List.fold_left f (axis_x vp) (traitement_y (0. , 2.) (0. , 0.) 0.2)
 
  
  (*----------------------------------------------------*)
   let gray = I.const (Color.gray 0.5)
-  let circle = P.empty >> P.circle P2.o(*cercle v avec centre 0.5 et 0.5 et rayon 0.4*) 0.05
+  let circle = P.empty >> P.circle P2.o 0.05
   let gray_circle = I.cut circle gray
 
   let circle_outline =
@@ -163,21 +158,27 @@ let axis vp =
       let i = I.move p point in 
       I.blend i accu 
     in
-   
     List.fold_left f (axis vp) l
 
 
+let map_p data vp= List.map (Viewport.scale vp) data
 
-let curve vp l =
-  let f vp accu position = 
-    accu >> P.line  ( Viewport.scale vp position)
-  in
-  let p = List.fold_left (f vp) P.empty l in
-  I.cut p (I.const Color.black) 
- (* I.blend (axis vp) i*)
-(* List.fold_left (funct vp acc e ->f vp acc e) P.empty l *)
-
-
+  let curve vp data =
+    let points = List.map ( Viewport.scale vp) data in
+    match points with
+    | [] -> I.const Color.void
+    | h :: t ->
+      let f accu pt = 
+        accu >> P.line pt
+      in
+      let p = List.fold_left f (P.sub h P.empty) points
+      in
+      let area = `O { P.o with P.width = 0.02 } in
+      let green = I.const Color.green in
+      let im = I.cut ~area p green in 
+      I.blend (axis vp) im
+      (* List.fold_left (funct vp acc e ->f vp acc e) P.empty l *)
+        
 end
 
 module Plot : sig
@@ -185,7 +186,7 @@ module Plot : sig
  
   val to_svg : t -> string -> unit
   val scatter_plot : (float * float) list -> t
-  val curve_plot : xmin:float -> xmax:float -> (float -> float) -> t
+  val curve_plot : xmin:float -> xmax:float -> (float -> float) -> float -> t
 end
 =
 struct 
@@ -208,10 +209,7 @@ struct
     let vp = Viewport.make ~xlim ~ylim () in 
     { 
      image = Primitives.cloud vp l ;
-
-     (*image = Primitives.axis vp pour test*)
-     (*axis = Primitives.cloud vp;*)
-      viewport = vp ;
+     viewport = vp ;
     }
 
   let to_svg plot out =
@@ -228,13 +226,11 @@ struct
   with Sys_error e -> prerr_endline e
 
  
+let rec table f inf sup pas = if inf > sup then [] else (inf , f inf) :: table f (inf +. pas) sup pas  
 
-let rec table f inf sup pas = if inf >= sup then [] else (inf , f inf) :: table f (inf +. pas) sup pas  
-(* table funct 3. 6. 1.;;
-- : (float * float) list = [(3., 20.); (4., 30.); (5., 42.)]*)
-
-let curve_plot ~xmin ~xmax f = 
-  let l = table f xmin xmax 0.1 in 
+(* nstep pour le nombre de pas entre xmin et xmax , plus c'est proche de 0 , moins la courbe sera lisse. Fixé à 100*)
+let curve_plot ~xmin ~xmax f nstep = 
+  let l = table f xmin xmax ((xmax -. xmin) /. nstep ) in 
   let xlim = list_min_max (List.map fst l) in
   let ylim = list_min_max (List.map snd l) in 
   let vp = Viewport.make ~xlim ~ylim () in 
@@ -243,7 +239,6 @@ let curve_plot ~xmin ~xmax f =
     viewport = vp ;
   }
 
-(*  let scale_tab (x,y) = List.map (Viewport.scale vp (x,y)) tab in *)
 
 end
 
@@ -258,22 +253,23 @@ let list_init n f r = list_init_aux n 0 f r
 - : (int * int) list = [(16, 1); (3, 12); (18, 9)]*)
 
 let cadre_vide width = 
-  let square = P.empty >> P.rect (Box2.v P2.o (P2.v 0.95 0.95)) in(*on donne moins de 1 pour que le reste soit occupé par le titre , P2. o pour le mettre tout a gauche , sinon mettre composant*)
+  let square = P.empty >> P.rect (Box2.v P2.o (P2.v 0.95 0.95)) in
   let area = `O { P.o with P.width = width; dashes = Some (0., [0.]); } in
   I.const (Color.gray 0.1) >> I.cut ~area square
 
-
 let funct x = ( x +. 1. ) *. ( x +. 2. )
-let f_carre x = x *. x
+let f_carre x = x *. x 
 
 let () =
   Plot.to_svg (Plot.scatter_plot (list_init 100 Random.float 1.)) "scatter_plot.svg"
-
+(*cos application partielle*)
 let () =
-  Plot.to_svg (Plot.curve_plot (-1.) (1.) cos) "curve_plot_cos.svg"
+  Plot.to_svg (Plot.curve_plot (0.) (1.) cos 100.) "curve_plot_cos.svg"
 let () =
-  Plot.to_svg (Plot.curve_plot (-1.) (1.) sin) "curve_plot_sin.svg"
+  Plot.to_svg (Plot.curve_plot (0.) (1.) sin 100.) "curve_plot_sin.svg"
 let () =
-  Plot.to_svg (Plot.curve_plot (-1.) (1.) funct) "curve_plot_funct.svg"
+  Plot.to_svg (Plot.curve_plot (0.) (1.) funct 100.) "curve_plot_funct.svg"
 let () =
-  Plot.to_svg (Plot.curve_plot (-1.) (1.) f_carre) "curve_plot_carre.svg"
+  Plot.to_svg (Plot.curve_plot (0.) (1.) f_carre 100.) "curve_plot_carre.svg"
+let () =
+  Plot.to_svg (Plot.curve_plot (0.) (1.) sqrt 100.) "curve_plot_sqrt.svg"
