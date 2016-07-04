@@ -3,7 +3,7 @@
 #use "topfind";;
 #require "vg.pdf";;
   ocamlfind ocamlopt -package gg,vg,vg.svg \
-                     -linkpkg -o sketch.native sketch.ml && ./sketch.native
+                     -Linkpkg -o sketch.native sketch.ml && ./sketch.native
 *)
 
 open Gg
@@ -100,89 +100,93 @@ let gray = I.const Color.red
 let x_marqueur = P.empty >> P.rect (Box2.v P2.o (Size2.v 0.05 0.05))
 let marqueur_abs = I.cut x_marqueur gray
 
+(*
 let rec traitement_x x i pas = if  fst i >= fst x  then [] else (fst i, 0.) :: traitement_x x (fst i +.pas, 0.) pas
 
 let rec traitement_y y i pas = if  snd i >= snd y  then [] else ( 0., snd i) :: traitement_y y (0., snd i +. pas) pas
 
 let rec traitement y i pas = if fst i >= fst y then [] else (fst i, snd i) :: traitement y (fst i +. pas , snd i +. pas) pas
+*)
 
 let cadre_vide =
   let square = P.empty >> P.rect (Box2.v  (P2.v 1. 1.) (P2.v 10. 10.)) in 
-let area = `O { P.o with P.width = 0.01; dashes = Some (0., [0.]); } in
+  let area = `O { P.o with P.width = 0.035; dashes = Some (0., [0.]); } in
  I.const (Color.gray 0.1) >> I.cut ~area square
 
 
-let step min max n =( max -. min ) /. n
-(*
-n est la distance entre deux points
-*)
-let rec r min max n  =
-  if min >= max then [] 
-  else min  :: r (min +. n) max n
+let rec list_aux n i f =
+    if i = n then [] 
+    else f i :: list_aux n (i + 1) f
 
-(*
-pas est le nombre de points voulu dans l intervalle
-*)
-let range min max pas = r min max (step min max pas)
+let list_init n f = list_aux n 0 f 
 
-let pair a b = (a,b)
-let zip la lb = List.map2 pair la lb
+let range a b n =
+  let delta = (b -. a) /. float n in
+  list_init n (fun i -> a  +. float i *. delta )
 
-(**)
-let pair1 a b = (a, 0.)
-let zip1 la lb = List.map2 pair1 la lb
-let pair2 a b = (a,b)
-let zip2 la lb = List.map2 pair2 la lb
-(*let zip2 la lb = let pair2 x y = (x,y) in  List.map2 pair2 la lb*)
-let points_x xmin xmax ymin ymax nstep = zip2 ( range xmin xmax nstep )  ( range ymin ymax nstep )
-let points_y xmin xmax ymin ymax nstep = zip2 ( range xmin xmax nstep )  ( range ymin ymax nstep )
+let f a b = (a,b)
+let points_x xmin xmax ymin n =
+  List.map2 f (range xmin xmax n) ymin
 
-(*let la = [0.;0.;0.;0.;0.;0.;0.;0.;0.;0.]*)
-let points xmin xmax ymin ymax nstep = zip ( range xmin xmax nstep )  ( range ymin ymax nstep )
+  
+let points_x xmin xmax ymin n =
+  let delta = (xmax -.xmin) /. float n in
+  list_init n (fun i ->
+      (xmin  +. float i *. delta, ymin)
+    )
 
 
-let axis_x vp =  let f accu (x, y) =
+let points_y xmin xmax ymin ymax n = assert false
+ (* zip2
+    (list_init n (fun i -> 0. +. (((10. -. 0.) /. (5. -. 1.))*.i)) xmin xmax ) 
+    (list_init n (fun i -> 0. +. (((10. -. 0.) /. (5. -. 1.))*.i)) ymin ymax )
+ *)
+
+
+let axis_x vp =  assert false
+(*  let f accu (x, y) =
     let p = Viewport.scale vp (x,y) in 
     let i = I.move p marqueur_abs in 
     I.blend i accu in 
-  List.fold_left f cadre_vide (points_y (fst (Viewport.xlim vp))  (snd (Viewport.xlim vp)) ( fst (Viewport.ylim vp)) (snd (Viewport.ylim vp)) 10.)
-
+  List.fold_left f cadre_vide (points_x (fst (Viewport.xlim vp))
+                                 (snd (Viewport.xlim vp)) ( fst (Viewport.ylim vp)) (snd (Viewport.ylim vp)) 10.)
+*)
 
 let axis vp = 
   let f accu (x, y) = 
     let p = Viewport.scale vp (x,y) in 
     let i = I.move p marqueur_abs in 
     I.blend i accu in 
-  List.fold_left f (axis_x vp) (points_x (fst (Viewport.xlim vp))  (snd (Viewport.xlim vp))  ( fst (Viewport.ylim vp)) (snd (Viewport.ylim vp)) 10.)
+  List.fold_left f (axis_x vp) (points_y (fst (Viewport.xlim vp))  (snd (Viewport.xlim vp))  ( fst (Viewport.ylim vp)) (snd (Viewport.ylim vp)) 10.)
+    
 
- 
  (*----------------------------------------------------*)
-  let gray = I.const (Color.gray 0.5)
-  let circle = P.empty >> P.circle P2.o 0.05
-  let gray_circle = I.cut circle gray
-
-  let circle_outline =
+let gray = I.const (Color.gray 0.5)
+let circle = P.empty >> P.circle P2.o 0.05
+let gray_circle = I.cut circle gray
+    
+let circle_outline =
     let area = `O { P.o with P.width = 0.03 } in
     let black = I.const Color.red in
     I.cut ~area  circle black
       
-  let point = I.blend  gray_circle circle_outline 
+let point = I.blend  gray_circle circle_outline 
+    
 
-
-  let cloud vp l =
-    let f accu (x, y) =
-      let p = Viewport.scale vp (x,y) in 
-      let i = I.move p point in 
-      I.blend i accu 
-    in
-    List.fold_left f (axis vp) l
+let cloud vp l =
+  let f accu (x, y) =
+    let p = Viewport.scale vp (x,y) in 
+    let i = I.move p point in 
+    I.blend i accu 
+  in
+  List.fold_left f (axis vp) l
 
 
 let map_p data vp= List.map (Viewport.scale vp) data
-
-  let curve vp data =
-    let points = List.map ( Viewport.scale vp) data in
-    match points with
+    
+let curve vp data =
+  let points = List.map ( Viewport.scale vp) data in
+  match points with
     | [] -> I.const Color.void
     | h :: t ->
       let f accu pt = 
@@ -199,45 +203,41 @@ end
 
 module Plot : sig
   type t
- 
+    
   val to_svg : t -> string -> unit
   val scatter_plot : (float * float) list -> t
   val curve_plot : xmin:float -> xmax:float -> (float -> float) -> float -> t
-  
+    
 end
 =
 struct 
-
+  
   type t = {
     image : image ;  
     viewport : Viewport.t
   }
-
+  
   let list_min = List.fold_left min infinity 
 
   let list_max = List.fold_left max neg_infinity 
-
+      
   let list_min_max l = ( list_min l , list_max l )        
-
+                       
   let scatter_plot l = 
     let xlim = list_min_max (List.map fst l) in
     let ylim = list_min_max (List.map snd l) in 
     let vp = Viewport.make ~xlim ~ylim () in 
     let image = 
       I.blend
-        (Primitives.axis vp)
-        (Primitives.cloud vp l)
+        (Primitives.cloud vp l)      
+        (Primitives.axis vp) 
     in
     { 
       image ;
       viewport = vp ;
     }  
-  (* { 
-     image = Primitives.cloud vp l ;
-(*image = Primitives.axis vp;*)
-     viewport = vp ;
-    }*)
-
+    
+  
   let to_svg plot out =
     let view = Viewport.view plot.viewport in
     let size = Size2.v 150. 150. in 
@@ -247,63 +247,51 @@ struct
       try
         ignore (Vgr.render r (`Image (size, view, plot.image)));
         ignore (Vgr.render r `End);
-      close_out oc
-    with e -> close_out oc; raise e
-  with Sys_error e -> prerr_endline e
+        close_out oc
+      with e -> close_out oc; raise e
+    with Sys_error e -> prerr_endline e
 
- 
-let rec table f inf sup pas = if inf > sup then [] else (inf , f inf) :: table f (inf +. pas) sup pas  
-
-(* nstep pour le nombre de pas entre xmin et xmax , plus c'est proche de 0 , moins la courbe sera lisse. Fixé à 100*)
-let curve_plot ~xmin ~xmax f nstep = 
-  let l = table f xmin xmax ((xmax -. xmin) /. nstep ) in 
-  let xlim = list_min_max (List.map fst l) in
-  let ylim = list_min_max (List.map snd l) in 
-  let vp = Viewport.make ~xlim ~ylim () in 
-  let image = 
-    I.blend
-      (Primitives.axis vp)
-      (Primitives.curve vp l)
-  in
-  { 
-    image ;
-    viewport = vp ;
-  }
-
+  
+  let rec table f inf sup pas = if inf > sup then [] else (inf , f inf) :: table f (inf +. pas) sup pas  
+                                                            
+  (* nstep pour le nombre de pas entre xmin et xmax , plus c'est proche de 0 , moins la courbe sera lisse. Fixé à 100*)
+  let curve_plot ~xmin ~xmax f nstep = 
+    let l = table f xmin xmax ((xmax -. xmin) /. nstep ) in 
+    let xlim = list_min_max (List.map fst l) in
+    let ylim = list_min_max (List.map snd l) in 
+    let vp = Viewport.make ~xlim ~ylim () in 
+    let image = 
+      I.blend
+        (Primitives.axis vp)
+        (Primitives.curve vp l)
+    in
+    { 
+      image ;
+      viewport = vp ;
+    }
+    
 end
 
 
-let rec list_init_aux n i f r= 
+let rec list_rand_aux n i f r = 
   if n = i then []
-  else (f r,f r) :: list_init_aux n (i + 1) f r
-
+  else (f r,f r) :: list_rand_aux n (i + 1) f r 
+         
 (* n la longueur de la liste , f la fonction et r pour appliquer random dessus . *)
-let list_init n f r = list_init_aux n 0 f r
-(* list_init 3 Random.int 20;;
-- : (int * int) list = [(16, 1); (3, 12); (18, 9)]*)
+let list_rand n f r = list_rand_aux n 0 f r 
+(* list_init 3 (fun _ -> Random.int 20);;
+   - : (int * int) list = [(16, 1); (3, 12); (18, 9)]*)
+    
 
-
-let f x = x +. 3.
-let rec list_aux f max i pas = 
-  if fst i >= fst max
-  then []
-  else (f (fst i), 0) :: list_aux f max ((fst i ) +. pas, snd i) pas
-
-let list_i f max p = list_aux f max (0. , 0.) p 
-
-
-let cadre_vide width = 
-  let square = P.empty >> P.rect (Box2.v P2.o (P2.v 0.95 0.95)) in
-  let area = `O { P.o with P.width = width; dashes = Some (0., [0.]); } in
-  I.const (Color.gray 0.1) >> I.cut ~area square
 
 let funct x = ( x +. 1. ) *. ( x +. 2. )
 let f_carre x = x *. x 
-let funct2 x = x *. (1. /. 2.) *. cos(x) +. 1.
 
+               
 
 let () =
-  Plot.to_svg (Plot.scatter_plot (list_init 100 Random.float 1.)) "scatter_plot.svg"
+  Plot.to_svg (Plot.scatter_plot (list_rand 100 Random.float 10.)) "scatter_plot.svg"
+
 (*cos application partielle*)
 let () =
   Plot.to_svg (Plot.curve_plot (0.) (1.) cos 100.) "curve_plot_cos.svg"
@@ -315,6 +303,3 @@ let () =
   Plot.to_svg (Plot.curve_plot (0.) (1.) f_carre 100.) "curve_plot_carre.svg"
 let () =
   Plot.to_svg (Plot.curve_plot (0.) (1.) sqrt 100.) "curve_plot_sqrt.svg"
-let () =
-  Plot.to_svg (Plot.curve_plot (0.) (1.) funct2 100.) "curve_plot_funct2.svg"
-
