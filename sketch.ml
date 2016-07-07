@@ -3,7 +3,7 @@
 #use "topfind";;
 #require "vg.pdf";;
   ocamlfind ocamlopt -package gg,vg,vg.svg \
-                     -Linkpkg -o sketch.native sketch.ml && ./sketch.native
+                     -linkpkg -o sketch.native sketch.ml && ./sketch.native
 *)
 
 open Gg
@@ -97,16 +97,9 @@ end
 struct
 
 let gray = I.const Color.red
-let x_marqueur = P.empty >> P.rect (Box2.v P2.o (Size2.v 0.05 0.05))
-let marqueur_abs = I.cut x_marqueur gray
+let marqueur_abs = P.empty >> P.rect (Box2.v P2.o (Size2.v 0.05 0.05))
+let marqueur = I.cut marqueur_abs gray
 
-(*
-let rec traitement_x x i pas = if  fst i >= fst x  then [] else (fst i, 0.) :: traitement_x x (fst i +.pas, 0.) pas
-
-let rec traitement_y y i pas = if  snd i >= snd y  then [] else ( 0., snd i) :: traitement_y y (0., snd i +. pas) pas
-
-let rec traitement y i pas = if fst i >= fst y then [] else (fst i, snd i) :: traitement y (fst i +. pas , snd i +. pas) pas
-*)
 
 let cadre_vide =
   let square = P.empty >> P.rect (Box2.v  (P2.v 1. 1.) (P2.v 10. 10.)) in 
@@ -126,38 +119,44 @@ let range a b n =
 
 let f a b = (a,b)
 let points_x xmin xmax ymin n =
-  List.map2 f (range xmin xmax n) ymin
+  List.map2 f (range xmin xmax n) (range ymin ymin n)
 
-  
+  (*
 let points_x xmin xmax ymin n =
   let delta = (xmax -.xmin) /. float n in
   list_init n (fun i ->
-      (xmin  +. float i *. delta, ymin)
-    )
+      (xmin  +. float i *. delta, ymin)    )
+*)
+
+(*
+let points_y xmin ymin ymax n =
+ let delta = (ymax -.ymin) /. float n in
+  list_init n (fun i ->
+      (ymin  +. float i *. delta, xmin)    )
+*)
+
+let points_y xmin ymin ymax n =
+  List.map2 f (range xmin xmin n)  (range ymin ymax n)
 
 
-let points_y xmin xmax ymin ymax n = assert false
- (* zip2
-    (list_init n (fun i -> 0. +. (((10. -. 0.) /. (5. -. 1.))*.i)) xmin xmax ) 
-    (list_init n (fun i -> 0. +. (((10. -. 0.) /. (5. -. 1.))*.i)) ymin ymax )
- *)
-
-
-let axis_x vp =  assert false
-(*  let f accu (x, y) =
+let axis_x vp = 
+  let f accu (x, y) =
     let p = Viewport.scale vp (x,y) in 
-    let i = I.move p marqueur_abs in 
+    let i = I.move p marqueur in 
     I.blend i accu in 
   List.fold_left f cadre_vide (points_x (fst (Viewport.xlim vp))
-                                 (snd (Viewport.xlim vp)) ( fst (Viewport.ylim vp)) (snd (Viewport.ylim vp)) 10.)
-*)
+                                        (snd (Viewport.xlim vp))
+                                        (fst (Viewport.ylim vp)) 10)
+
 
 let axis vp = 
   let f accu (x, y) = 
     let p = Viewport.scale vp (x,y) in 
-    let i = I.move p marqueur_abs in 
+    let i = I.move p marqueur in 
     I.blend i accu in 
-  List.fold_left f (axis_x vp) (points_y (fst (Viewport.xlim vp))  (snd (Viewport.xlim vp))  ( fst (Viewport.ylim vp)) (snd (Viewport.ylim vp)) 10.)
+  List.fold_left f (axis_x vp) (points_y (fst (Viewport.xlim vp))  
+                                         (fst (Viewport.ylim vp)) 
+                                         (snd (Viewport.ylim vp)) 10)
     
 
  (*----------------------------------------------------*)
@@ -283,12 +282,10 @@ let list_rand n f r = list_rand_aux n 0 f r
    - : (int * int) list = [(16, 1); (3, 12); (18, 9)]*)
     
 
-
 let funct x = ( x +. 1. ) *. ( x +. 2. )
 let f_carre x = x *. x 
 
                
-
 let () =
   Plot.to_svg (Plot.scatter_plot (list_rand 100 Random.float 10.)) "scatter_plot.svg"
 
