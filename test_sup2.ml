@@ -5,29 +5,7 @@
 #use "topfind";;
 #require "vg.pdf";;
 
-(*
-let circle =
-      let circle = P.(empty >> circle (P2.v 0.5 0.5) 0.4) in
-      let area = `O { P.o with P.width = 0.1 } in
-      I.cut ~area circle (I.const Color.black) >>
-      I.scale (Size2.v 0.5 1.)
 
-let () = svg_of_usquare "circlclc.svg" circle
-*)
-
-let c = P2.v 0.5 0.5
- let area = `O { P.o with P.width = 0.01 }
-
-    let p =
-      P.empty >>
-      P.ellipse c (V2.v 0.1 0.2) >>
-      P.circle c 0.25 >>
-      P.rect (Box2.v (P2.v 0.2 0.15) (Size2.v 0.6 0.7)) >>
-      P.rrect (Box2.v (P2.v 0.1 0.05) (Size2.v 0.8 0.9)) (Size2.v 0.2 0.1)
-    
-  
- let cutage = I.const (Color.gray 0.3) >> I.cut ~area p
-  let () = svg_of_usquare "cutage.svg" cutage
 *)
 
 open Gg
@@ -377,14 +355,14 @@ let i_blend accu position = I.blend (i_funct_chemin accu position) (cadre 9 0.0)
 (*
 let () = svg_of_usquare "blendage.svg" Box2.unit ( i_blend ( P.line (P2.v 0.4 0.5)) ( P.empty >>  P.line (P2.v 0.1 0.2) >> P.line (P2.v (0.1 +. 0.002) (0.2 +. 0.002))) )*)
 
-
+(*
 let f vp accu (x, y) = vp.scale (x,y) in  accu >> P.line (P2.v x y )
 
+*)
 
-
-
+(*
 let courbe accu position = List.fold_left (i_blend accu position) (cadre 9 0.0) (table (funct inf) inf sup pas )
-
+*)
 
 let m = P.empty >> P.line (P2.v 0.4 0.5)
 let tm = m >> P.line (P2.v 0.5 0.6)
@@ -423,4 +401,33 @@ let b_ch inf sup pas = I.blend (c_ch inf sup pas) gray
 let () = svg_of_usquare "mbeeeeee.svg" Box2.unit (b_ch 0.1 0.8 0.2) *)
 
 
+let open_sans_xbold =
+  { Font.name = "Open Sans"; size = 1.0; weight = `W800; slant = `Normal}
 
+let glyphs = [ 53; 72; 89; 82; 79; 87; 4 ]
+
+ let funct = 
+    let font = { open_sans_xbold with Font.size = 0.01 } in
+    let text = "0" in
+    I.const Color.black >> I.cut_glyphs ~text font glyphs 
+  (*  I.move (V2.v 0.23 0.25)*)
+
+
+let revolt couple =I.move couple funct
+
+let fa_lab accu position =  I.blend (revolt position) accu
+
+
+let traitement_x x =
+  let z0 = x+.0.1  in 
+  let z1 = 0.  in
+  P2.v z0 z1
+
+let rec l_funct n i f c = 
+  if n = i then []
+  else f c :: l_funct n (i + 1) f (c+. 0.094)
+
+let list_init n f c = l_funct n 0 f c
+
+let lab_x  = List.fold_left fa_lab ( I.move (V2.v 0.1 0.1) (cadre_vide 0.01)) (list_init 10 traitement_x 0. ) 
+let () = svg_of_usquare "lab.svg" Box2.unit lab_x

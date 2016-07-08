@@ -108,7 +108,7 @@ let cadre_vide =
 
 
 let rec list_aux n i f =
-    if i = n then [] 
+    if i > n then [] 
     else f i :: list_aux n (i + 1) f
 
 let list_init n f = list_aux n 0 f 
@@ -117,9 +117,9 @@ let range a b n =
   let delta = (b -. a) /. float n in
   list_init n (fun i -> a  +. float i *. delta )
 
-let f a b = (a,b)
 let points_x xmin xmax ymin n =
-  List.map2 f (range xmin xmax n) (range ymin ymin n)
+  range xmin xmax n
+  |> List.map (fun x -> (x, ymin))
 
   (*
 let points_x xmin xmax ymin n =
@@ -136,7 +136,9 @@ let points_y xmin ymin ymax n =
 *)
 
 let points_y xmin ymin ymax n =
-  List.map2 f (range xmin xmin n)  (range ymin ymax n)
+ 
+ (range ymin ymax n)
+  |> List.map (fun y -> (xmin,y))
 
 
 let axis_x vp = 
@@ -285,6 +287,9 @@ let list_rand n f r = list_rand_aux n 0 f r
 let funct x = ( x +. 1. ) *. ( x +. 2. )
 let f_carre x = x *. x 
 
+let pi = 4.0 *. atan 1.0;;
+(*f(x) = cos(pi.x).exp(x) sur [-1;1]*)
+let f_bis x = (cos ( pi *. x)) *. (exp x)
                
 let () =
   Plot.to_svg (Plot.scatter_plot (list_rand 100 Random.float 10.)) "scatter_plot.svg"
@@ -293,10 +298,14 @@ let () =
 let () =
   Plot.to_svg (Plot.curve_plot (0.) (1.) cos 100.) "curve_plot_cos.svg"
 let () =
-  Plot.to_svg (Plot.curve_plot (0.) (1.) sin 100.) "curve_plot_sin.svg"
+  Plot.to_svg (Plot.curve_plot (-10.) (10.) sin 100.) "curve_plot_sin.svg"
 let () =
   Plot.to_svg (Plot.curve_plot (0.) (1.) funct 100.) "curve_plot_funct.svg"
 let () =
-  Plot.to_svg (Plot.curve_plot (0.) (1.) f_carre 100.) "curve_plot_carre.svg"
+  Plot.to_svg (Plot.curve_plot (-5.) (5.) f_carre 100.) "curve_plot_carre.svg"
 let () =
-  Plot.to_svg (Plot.curve_plot (0.) (1.) sqrt 100.) "curve_plot_sqrt.svg"
+  Plot.to_svg (Plot.curve_plot (0.) (5.) sqrt 100.) "curve_plot_sqrt.svg"
+let () =
+  Plot.to_svg (Plot.curve_plot (-50.) (50.) f_bis 100.) "curve_plot_f_bis.svg"
+let () =
+  Plot.to_svg (Plot.curve_plot (0.) (10.) f_bis 100.) "curve_plot_f_bis2.svg"
