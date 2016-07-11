@@ -1,9 +1,9 @@
 (*
- ocamlfind ocamlopt -package gg,vg,vg.svg \
-                     -linkpkg -o min_svg.native test_sup.ml
 
 #use "topfind";;
 #require "vg.pdf";;
+ ocamlfind ocamlopt -package gg,vg,vg.svg \
+                     -linkpkg -o min_svg.native test_sup.ml
 
 
 *)
@@ -406,11 +406,28 @@ let open_sans_xbold =
 
 let glyphs = [ 53; 72; 89; 82; 79; 87; 4 ]
 
+
  let funct = 
     let font = { open_sans_xbold with Font.size = 0.01 } in
-    let text = "0" in
+    let text = "0" in 
     I.const Color.black >> I.cut_glyphs ~text font glyphs 
   (*  I.move (V2.v 0.23 0.25)*)
+
+
+let s = "0"
+
+ 
+let set_label p =  s.[0] <- p
+(*let s = int_of_char p *)
+let text = "s"
+
+
+let rec a b p i = if i> 10 
+  then Bytes.set text b (char_of_int((int_of_char p)+i))   
+  else a b p (i + 1)
+
+let char_lab b p = a b p 0
+
 
 
 let revolt couple =I.move couple funct
@@ -423,11 +440,31 @@ let traitement_x x =
   let z1 = 0.  in
   P2.v z0 z1
 
-let rec l_funct n i f c = 
+(*let rec l_funct n i f c = 
   if n = i then []
-  else f c :: l_funct n (i + 1) f (c+. 0.094)
+  else f c :: l_funct n (i + 1) f c
 
 let list_init n f c = l_funct n 0 f c
 
 let lab_x  = List.fold_left fa_lab ( I.move (V2.v 0.1 0.1) (cadre_vide 0.01)) (list_init 10 traitement_x 0. ) 
-let () = svg_of_usquare "lab.svg" Box2.unit lab_x
+let () = svg_of_usquare "lab.svg" Box2.unit lab_x*)
+
+let rec list_aux n i f c =
+    if i > n then [] 
+    else f c :: list_aux n (i + 1) f (c +. 0.1)
+
+let list_init n  = list_aux n 0 (fun i ->
+    let z0 = i +. 0.1  in 
+    let z1 = 0.  in
+    P2.v z0 z1) 0.
+
+
+let label  = List.fold_left fa_lab ( I.move (V2.v 0.1 0.1) (cadre_vide 0.01) ) ( list_init 10 ) 
+let () = svg_of_usquare "label.svg" Box2.unit label
+
+
+ let funct = 
+    let font = { open_sans_xbold with Font.size = 0.01 } in
+    let text = "0" in 
+    I.const Color.black >> I.cut_glyphs ~text font glyphs 
+  (*  I.move (V2.v 0.23 0.25)*)
