@@ -370,6 +370,12 @@ let c_tm = I.cut tm gray
 (*let () = svg_of_usquare "tm.svg" (tm  (V2.v 0.2 0.6) )*) 
 let fa_pp =  I.blend c_tm
 
+<<<<<<< HEAD
+=======
+
+
+(*---------------*)
+>>>>>>> fbea56c2d4b9601bd62599acab97159dea2d53c1
 
 (*---------------*)
 let traitement_x x =
@@ -386,6 +392,7 @@ let glyphs = [ 53; 72; 89; 82; 79; 87; 4 ]
 http://caml.inria.fr/pub/docs/manual-ocaml/libref/Printf.html
 *)
 
+<<<<<<< HEAD
 let fa_lab accu position = 
   let a = ((V2.x position)-. 0.1)  in 
   I.blend (I.move position (
@@ -395,6 +402,29 @@ let fa_lab accu position =
     I.const Color.black >> I.cut_glyphs ~text font glyphs >> I.move pos
       
     )) accu 
+=======
+
+let a = 0.
+
+ let funct a pas = 
+    let font = { open_sans_xbold with Font.size = 0.01 } in
+    let text = Printf.sprintf "%g" a in 
+    let pos = P2.v  (0. +. pas)  0. in
+    I.const Color.black >> I.cut_glyphs ~text font glyphs >> I.move pos
+  
+  (* I.move (V2.v 0.23 0.25)*)
+
+let traitement_x x =
+  let z0 = x+.0.1  in 
+  let z1 = 0.  in
+  V2.v  z0 z1
+
+
+let revolt position a pas = I.move  position (funct a pas)
+
+
+let fa_lab accu position =  I.blend (revolt position a 0.) accu
+>>>>>>> fbea56c2d4b9601bd62599acab97159dea2d53c1
 
 
 let rec list_aux n i f c =
@@ -404,9 +434,18 @@ let rec list_aux n i f c =
 let list_init n f = list_aux n 0 f 0.
 
 
+<<<<<<< HEAD
 let label  = List.fold_left   fa_lab
                               ( I.move (V2.v 0.1 0.1) (cadre_vide 0.01) ) (*cadre*)
                               ( list_init 10 (fun i -> traitement_x i )) (*liste de position*)
                               
 
 let () = svg_of_usquare "label.svg" Box2.unit label
+=======
+let label = List.fold_left    fa_lab
+                              ( I.move (V2.v 0.1 0.1) (cadre_vide 0.01) ) (*cadre*)
+                              ( list_init 10 (fun i -> traitement_x i )) (*liste de position*)
+let () = svg_of_usquare "label.svg" Box2.unit (label)
+
+
+>>>>>>> fbea56c2d4b9601bd62599acab97159dea2d53c1

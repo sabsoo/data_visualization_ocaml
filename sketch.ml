@@ -87,9 +87,13 @@ module Primitives : sig
   
   val axis : Viewport.t -> image
 
+  val label : Viewport.t -> image
+
   val cloud : Viewport.t -> (float * float) list -> image
 
   val curve : Viewport.t -> (float * float) list -> image
+
+
 
 end
 
@@ -159,8 +163,55 @@ let axis vp =
   List.fold_left f (axis_x vp) (points_y (fst (Viewport.xlim vp))  
                                          (fst (Viewport.ylim vp)) 
                                          (snd (Viewport.ylim vp)) 10)
-    
+    (*-------------------------------*)
 
+(*ajouter vp et prendre en compte la mise à l echelle*)
+let traitement_x x =
+  let z0 = x+.0.1  in 
+  let z1 = 0.  in
+  P2.v z0 z1
+
+let open_sans_xbold =
+  { Font.name = "Open Sans"; size = 1.0; weight = `W800; slant = `Normal}
+
+let glyphs = [ 53; 72; 89; 82; 79; 87; 4 ]
+
+(*
+http://caml.inria.fr/pub/docs/manual-ocaml/libref/Printf.html
+*)
+
+let fa_lab accu position vp = 
+  let a = ((V2.x position)-. 0.1)  in
+  let sc_lab = Viewport.scale vp (a,0.) in  
+  I.blend (I.move position (
+                             let font = { open_sans_xbold with Font.size = 0.01 } in
+                             let text = Printf.sprintf "%g" a in 
+                             let pos = P2.v 0. 0. in
+                             I.const Color.black >> I.cut_glyphs ~text font glyphs >> I.move pos
+      
+                           )) accu 
+
+
+let rec list_aux2 n i f c =
+    if i >= n then [] 
+    else f c:: list_aux2 n (i + 1) f (c +. 0.1)
+
+let list_init1 n f = list_aux2 n 0 f 0.
+
+
+let label vp=
+             List.fold_left   fa_lab
+                              ( I.move (V2.v 0.1 0.1) cadre_vide ) (*cadre*)
+                              ( list_init1 10 (fun i -> traitement_x i )) (*liste de position*) vp
+  (*                  
+let axis vp = 
+  let f accu (x, y) = 
+    let p = Viewport.scale vp (x,y) in 
+    let i = I.move p marqueur in 
+    I.blend i accu in 
+  List.fold_left f (axis_x vp) (points_y (fst (Viewport.xlim vp))  
+                                         (fst (Viewport.ylim vp)) 
+                                         (snd (Viewport.ylim vp)) 10)*)
  (*----------------------------------------------------*)
 let gray = I.const (Color.gray 0.5)
 let circle = P.empty >> P.circle P2.o 0.05
@@ -309,3 +360,9 @@ let () =
   Plot.to_svg (Plot.curve_plot (-50.) (50.) f_bis 100.) "curve_plot_f_bis.svg"
 let () =
   Plot.to_svg (Plot.curve_plot (0.) (10.) f_bis 100.) "curve_plot_f_bis2.svg"
+
+(*
+          
+
+let () = svg_of_usquare "label.svg" Box2.unit label
+*)
