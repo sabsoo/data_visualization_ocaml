@@ -3,7 +3,7 @@
 #use "topfind";;
 #require "vg.pdf";;
  ocamlfind ocamlopt -package gg,vg,vg.svg \
-                     -linkpkg -o min_svg.native test_sup.ml
+                     -linkpkg -o min_svg.native test_sup2.ml && ./min_svg.native
 
 
 *)
@@ -370,101 +370,43 @@ let c_tm = I.cut tm gray
 (*let () = svg_of_usquare "tm.svg" (tm  (V2.v 0.2 0.6) )*) 
 let fa_pp =  I.blend c_tm
 
-(*
-let chemin_init inf =  P.empty >>  P.line (P2.v inf inf)>> P.line (P2.v ( inf +. 0.002) ( inf +. 0.002)) 
-let fa position accu =I.blend ( I.cut (accu >> P.line (P2.v (fst position) (snd position))  ) constant_image ) gray
-let () = svg_of_usquare "fa.svg" Box2.unit (fa (0.5 , 0.5) (chemin_init 0.2) )*)
 
-(*
-let funct x = ( x +. 1. ) *. ( x +. 2. )
-
-let b l inf sup pas = List.fold_left (chemin (0.8,0.2)) ( table (funct fst inf) inf sup pas )*)
-
- 
-(*
-let ch l inf sup pas = 
-let chemin_init =  P.empty >>  P.line (P2.v (fst inf) (snd inf))>> P.line (P2.v ((fst inf) +. 0.002) ((snd inf) +. 0.002)) in 
-let chem_suiv = chemin_init >> P.line (P2.v ((fst inf) +. pas) ((snd inf) +. pas)) 
-*)
-
-(*
-let chemin_init inf =  P.empty >>  P.line (P2.v inf inf)>> P.line (P2.v ( inf +. 0.002) ( inf +. 0.002)) 
-let chem_suiv inf pas = chemin_init inf >> P.line (P2.v (inf +. pas) (inf +. pas)) 
-
-let rec chmn inf sup pas i = 
-  if i = sup then chemin_init inf 
-  else chmn inf sup pas (i+. pas ) 
-let ch inf sup pas = chmn inf sup pas 0.
-
- let c_ch inf sup pas= I.cut (ch inf sup pas) (I.const Color.black ) 
-let b_ch inf sup pas = I.blend (c_ch inf sup pas) gray
-let () = svg_of_usquare "mbeeeeee.svg" Box2.unit (b_ch 0.1 0.8 0.2) *)
-
+(*---------------*)
+let traitement_x x =
+  let z0 = x+.0.1  in 
+  let z1 = 0.  in
+  P2.v z0 z1
 
 let open_sans_xbold =
   { Font.name = "Open Sans"; size = 1.0; weight = `W800; slant = `Normal}
 
 let glyphs = [ 53; 72; 89; 82; 79; 87; 4 ]
 
+(*
+http://caml.inria.fr/pub/docs/manual-ocaml/libref/Printf.html
+*)
 
- let funct = 
-    let font = { open_sans_xbold with Font.size = 0.01 } in
-    let text = "0" in 
-    I.const Color.black >> I.cut_glyphs ~text font glyphs 
-  (*  I.move (V2.v 0.23 0.25)*)
+let fa_lab accu position = 
+  let a = ((V2.x position)-. 0.1)  in 
+  I.blend (I.move position (
+      let font = { open_sans_xbold with Font.size = 0.01 } in
+      let text = Printf.sprintf "%g" a in 
+      let pos = P2.v 0. 0. in
+    I.const Color.black >> I.cut_glyphs ~text font glyphs >> I.move pos
+      
+    )) accu 
 
-
-let s = "0"
-
- 
-let set_label p =  s.[0] <- p
-(*let s = int_of_char p *)
-let text = "s"
-
-
-let rec a b p i = if i> 10 
-  then Bytes.set text b (char_of_int((int_of_char p)+i))   
-  else a b p (i + 1)
-
-let char_lab b p = a b p 0
-
-
-
-let revolt couple =I.move couple funct
-
-let fa_lab accu position =  I.blend (revolt position) accu
-
-
-let traitement_x x =
-  let z0 = x+.0.1  in 
-  let z1 = 0.  in
-  P2.v z0 z1
-
-(*let rec l_funct n i f c = 
-  if n = i then []
-  else f c :: l_funct n (i + 1) f c
-
-let list_init n f c = l_funct n 0 f c
-
-let lab_x  = List.fold_left fa_lab ( I.move (V2.v 0.1 0.1) (cadre_vide 0.01)) (list_init 10 traitement_x 0. ) 
-let () = svg_of_usquare "lab.svg" Box2.unit lab_x*)
 
 let rec list_aux n i f c =
-    if i > n then [] 
-    else f c :: list_aux n (i + 1) f (c +. 0.1)
+    if i >= n then [] 
+    else f c:: list_aux n (i + 1) f (c +. 0.1)
 
-let list_init n  = list_aux n 0 (fun i ->
-    let z0 = i +. 0.1  in 
-    let z1 = 0.  in
-    P2.v z0 z1) 0.
+let list_init n f = list_aux n 0 f 0.
 
 
-let label  = List.fold_left fa_lab ( I.move (V2.v 0.1 0.1) (cadre_vide 0.01) ) ( list_init 10 ) 
+let label  = List.fold_left   fa_lab
+                              ( I.move (V2.v 0.1 0.1) (cadre_vide 0.01) ) (*cadre*)
+                              ( list_init 10 (fun i -> traitement_x i )) (*liste de position*)
+                              
+
 let () = svg_of_usquare "label.svg" Box2.unit label
-
-
- let funct = 
-    let font = { open_sans_xbold with Font.size = 0.01 } in
-    let text = "0" in 
-    I.const Color.black >> I.cut_glyphs ~text font glyphs 
-  (*  I.move (V2.v 0.23 0.25)*)
