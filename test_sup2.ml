@@ -370,18 +370,8 @@ let c_tm = I.cut tm gray
 (*let () = svg_of_usquare "tm.svg" (tm  (V2.v 0.2 0.6) )*) 
 let fa_pp =  I.blend c_tm
 
-<<<<<<< HEAD
-=======
-
 
 (*---------------*)
->>>>>>> fbea56c2d4b9601bd62599acab97159dea2d53c1
-
-(*---------------*)
-let traitement_x x =
-  let z0 = x+.0.1  in 
-  let z1 = 0.  in
-  P2.v z0 z1
 
 let open_sans_xbold =
   { Font.name = "Open Sans"; size = 1.0; weight = `W800; slant = `Normal}
@@ -392,8 +382,8 @@ let glyphs = [ 53; 72; 89; 82; 79; 87; 4 ]
 http://caml.inria.fr/pub/docs/manual-ocaml/libref/Printf.html
 *)
 
-<<<<<<< HEAD
-let fa_lab accu position = 
+
+let fa_lab_x accu position = 
   let a = ((V2.x position)-. 0.1)  in 
   I.blend (I.move position (
       let font = { open_sans_xbold with Font.size = 0.01 } in
@@ -402,50 +392,107 @@ let fa_lab accu position =
     I.const Color.black >> I.cut_glyphs ~text font glyphs >> I.move pos
       
     )) accu 
-=======
-
-let a = 0.
-
- let funct a pas = 
-    let font = { open_sans_xbold with Font.size = 0.01 } in
-    let text = Printf.sprintf "%g" a in 
-    let pos = P2.v  (0. +. pas)  0. in
-    I.const Color.black >> I.cut_glyphs ~text font glyphs >> I.move pos
-  
-  (* I.move (V2.v 0.23 0.25)*)
 
 let traitement_x x =
   let z0 = x+.0.1  in 
   let z1 = 0.  in
   V2.v  z0 z1
 
-
-let revolt position a pas = I.move  position (funct a pas)
-
-
-let fa_lab accu position =  I.blend (revolt position a 0.) accu
->>>>>>> fbea56c2d4b9601bd62599acab97159dea2d53c1
-
-
-let rec list_aux n i f c =
+let rec list_aux1 n i f c =
     if i >= n then [] 
-    else f c:: list_aux n (i + 1) f (c +. 0.1)
+    else f c:: list_aux1 n (i + 1) f (c +. 0.1)
 
-let list_init n f = list_aux n 0 f 0.
+let list_init1 n f = list_aux1 n 0 f 0.
 
 
-<<<<<<< HEAD
-let label  = List.fold_left   fa_lab
-                              ( I.move (V2.v 0.1 0.1) (cadre_vide 0.01) ) (*cadre*)
-                              ( list_init 10 (fun i -> traitement_x i )) (*liste de position*)
+let label_x  = List.fold_left   fa_lab_x
+                              ( I.move (V2.v 0.1 0.1) (cadre 9 0.0) ) (*cadre*)
+                              ( list_init1 10 (fun i -> traitement_x i )) (*liste de position*)
                               
 
+let () = svg_of_usquare "label_x.svg" Box2.unit label_x
+
+
+let traitement_y x =
+  let z0 = 0.  in 
+  let z1 = x +. 0.1  in
+  P2.v z0 z1
+
+let fa_lab_y accu position = 
+  let a = ((V2.y position)-. 0.1)  in 
+  I.blend (I.move position (
+      let font = { open_sans_xbold with Font.size = 0.01 } in
+      let text = Printf.sprintf "%g" a in 
+      let pos = P2.v 0. 0. in
+    I.const Color.black >> I.cut_glyphs ~text font glyphs >> I.move pos
+      
+    )) accu 
+
+let label_y  = List.fold_left   fa_lab_y
+                              ( I.move (V2.v 0.1 0.1) (cadre 9 0.0) ) (*cadre*)
+                              ( list_init1 10 (fun i -> traitement_y i )) (*liste de position*)
+                              
+
+let () = svg_of_usquare "label_y.svg" Box2.unit label_y
+
+let label = I.blend label_x label_y
+
 let () = svg_of_usquare "label.svg" Box2.unit label
-=======
-let label = List.fold_left    fa_lab
-                              ( I.move (V2.v 0.1 0.1) (cadre_vide 0.01) ) (*cadre*)
-                              ( list_init 10 (fun i -> traitement_x i )) (*liste de position*)
-let () = svg_of_usquare "label.svg" Box2.unit (label)
+
+(****)
 
 
->>>>>>> fbea56c2d4b9601bd62599acab97159dea2d53c1
+let rec list_aux n i f =
+    if i > n then [] 
+    else f i :: list_aux n (i + 1) f
+
+let list_init n f = list_aux n 0 f 
+
+let range a b n =
+  let delta = (b -. a) /. float n in
+  list_init n (fun i -> a  +. float i *. delta )
+
+let points_x xmin xmax ymin n =
+  range xmin xmax n
+  |> List.map (fun x -> (x, ymin))
+
+let points_y xmin ymin ymax n = 
+  range ymin ymax n
+  |> List.map (fun y -> (xmin,y))
+
+
+
+let fa_lab_x accu position = 
+  let a = (fst position)  in 
+  I.blend (I.move (P2.v (fst position) 0.) (
+      let font = { open_sans_xbold with Font.size = 0.01 } in
+      let text = Printf.sprintf "%g" a in 
+      let pos = P2.v 0. 0. in
+    I.const Color.black >> I.cut_glyphs ~text font glyphs >> I.move pos
+      
+    )) accu 
+
+
+let fa_lab_y accu position = 
+  let a = (snd position)  in 
+  I.blend (I.move (P2.v 0. (snd position) ) (
+      let font = { open_sans_xbold with Font.size = 0.01 } in
+      let text = Printf.sprintf "%g" a in 
+      let pos = P2.v 0. 0. in
+    I.const Color.black >> I.cut_glyphs ~text font glyphs >> I.move pos
+      
+    )) accu 
+
+
+let axis_x = 
+  List.fold_left fa_lab_x (I.move(P2.v 0.1 0.1) (cadre 9 0.0)) (points_x 0. 1. 0. 10)
+
+
+let () = svg_of_usquare "test_axis_x.svg" Box2.unit axis_x
+
+let axis_y = 
+  List.fold_left fa_lab_y axis_x (points_y 0. 0. 1. 10)
+
+
+let () = svg_of_usquare "test_axis_y.svg" Box2.unit axis_y
+

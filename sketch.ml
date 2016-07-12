@@ -100,6 +100,7 @@ end
 =
 struct
 
+
 let gray = I.const Color.red
 let marqueur_abs = P.empty >> P.rect (Box2.v P2.o (Size2.v 0.05 0.05))
 let marqueur = I.cut marqueur_abs gray
@@ -109,6 +110,11 @@ let cadre_vide =
   let square = P.empty >> P.rect (Box2.v  (P2.v 1. 1.) (P2.v 10. 10.)) in 
   let area = `O { P.o with P.width = 0.035; dashes = Some (0., [0.]); } in
  I.const (Color.gray 0.1) >> I.cut ~area square
+
+
+
+(*--------------------------------**)
+
 
 
 let rec list_aux n i f =
@@ -150,9 +156,9 @@ let axis_x vp =
     let p = Viewport.scale vp (x,y) in 
     let i = I.move p marqueur in 
     I.blend i accu in 
-  List.fold_left f cadre_vide (points_x (fst (Viewport.xlim vp))
-                                        (snd (Viewport.xlim vp))
-                                        (fst (Viewport.ylim vp)) 10)
+  List.fold_left f  cadre_vide (points_x (fst (Viewport.xlim vp))
+                                         (snd (Viewport.xlim vp))
+                                         (fst (Viewport.ylim vp)) 10)
 
 
 let axis vp = 
@@ -163,13 +169,9 @@ let axis vp =
   List.fold_left f (axis_x vp) (points_y (fst (Viewport.xlim vp))  
                                          (fst (Viewport.ylim vp)) 
                                          (snd (Viewport.ylim vp)) 10)
-    (*-------------------------------*)
+   
+(*-----------------------------------*)
 
-(*ajouter vp et prendre en compte la mise à l echelle*)
-let traitement_x x =
-  let z0 = x+.0.1  in 
-  let z1 = 0.  in
-  P2.v z0 z1
 
 let open_sans_xbold =
   { Font.name = "Open Sans"; size = 1.0; weight = `W800; slant = `Normal}
@@ -180,38 +182,52 @@ let glyphs = [ 53; 72; 89; 82; 79; 87; 4 ]
 http://caml.inria.fr/pub/docs/manual-ocaml/libref/Printf.html
 *)
 
-let fa_lab accu position vp = 
-  let a = ((V2.x position)-. 0.1)  in
-  let sc_lab = Viewport.scale vp (a,0.) in  
+
+let fa_lab_x accu position =
   I.blend (I.move position (
-                             let font = { open_sans_xbold with Font.size = 0.01 } in
-                             let text = Printf.sprintf "%g" a in 
-                             let pos = P2.v 0. 0. in
-                             I.const Color.black >> I.cut_glyphs ~text font glyphs >> I.move pos
-      
-                           )) accu 
+      let font = { open_sans_xbold with Font.size = 0.2 } in
+      let text = Printf.sprintf "%g" (-.(V2.x position)) in 
+    I.const Color.black >> I.cut_glyphs ~text font glyphs
+    )) accu 
 
 
-let rec list_aux2 n i f c =
-    if i >= n then [] 
-    else f c:: list_aux2 n (i + 1) f (c +. 0.1)
 
-let list_init1 n f = list_aux2 n 0 f 0.
+let fa_lab_y accu position = 
+  I.blend (I.move  position (
+            let font = { open_sans_xbold with Font.size = 0.2 } in
+            let text = Printf.sprintf "%g"  (-.(V2.y position) ) in 
+            I.const Color.black >> I.cut_glyphs ~text font glyphs 
+          )) accu 
 
 
-let label vp=
-             List.fold_left   fa_lab
-                              ( I.move (V2.v 0.1 0.1) cadre_vide ) (*cadre*)
-                              ( list_init1 10 (fun i -> traitement_x i )) (*liste de position*) vp
-  (*                  
-let axis vp = 
-  let f accu (x, y) = 
-    let p = Viewport.scale vp (x,y) in 
-    let i = I.move p marqueur in 
-    I.blend i accu in 
-  List.fold_left f (axis_x vp) (points_y (fst (Viewport.xlim vp))  
-                                         (fst (Viewport.ylim vp)) 
-                                         (snd (Viewport.ylim vp)) 10)*)
+
+let label_x vp =
+  let (xmin, xmax) = Viewport.xlim vp in
+  let (ymin, _) = Viewport.ylim vp in
+  let data_points = points_x xmin xmax ymin 10 in 
+  let plot_points =
+    data_points
+    |> List.map (fun p -> Viewport.scale vp p)
+  in
+  List.fold_left 
+    fa_lab_x
+    (axis vp)  
+    plot_points
+
+let label_y vp = 
+   let (ymin, ymax) = Viewport.ylim vp in
+  let (xmin,_) = Viewport.xlim vp in
+  let data_points = points_y xmin ymin ymax 10 in 
+  let plot_points =
+    data_points
+    |> List.map (fun p -> Viewport.scale vp p)  in
+   List.fold_left 
+     fa_lab_y
+     (axis vp)  
+     plot_points
+
+let label vp = I.blend (label_x vp) (label_y vp)
+
  (*----------------------------------------------------*)
 let gray = I.const (Color.gray 0.5)
 let circle = P.empty >> P.circle P2.o 0.05
@@ -314,7 +330,7 @@ struct
     let vp = Viewport.make ~xlim ~ylim () in 
     let image = 
       I.blend
-        (Primitives.axis vp)
+        (Primitives.label vp)
         (Primitives.curve vp l)
     in
     { 
