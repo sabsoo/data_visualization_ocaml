@@ -1,7 +1,7 @@
 
 (*
 #use "topfind";;
-#require "vg.pdf";;
+#require "vg.svg";;
   ocamlfind ocamlopt -package gg,vg,vg.svg \
                      -linkpkg -o sketch.native sketch.ml && ./sketch.native
 *)
@@ -131,24 +131,25 @@ let points_x xmin xmax ymin n =
   range xmin xmax n
   |> List.map (fun x -> (x, ymin))
 
-  (*
+ 
+let points_y xmin ymin ymax n =
+  (range ymin ymax n)
+  |> List.map (fun y -> (xmin,y))
+
+
+ (*
 let points_x xmin xmax ymin n =
   let delta = (xmax -.xmin) /. float n in
   list_init n (fun i ->
       (xmin  +. float i *. delta, ymin)    )
-*)
 
-(*
+
+
 let points_y xmin ymin ymax n =
  let delta = (ymax -.ymin) /. float n in
   list_init n (fun i ->
       (ymin  +. float i *. delta, xmin)    )
 *)
-
-let points_y xmin ymin ymax n =
- 
- (range ymin ymax n)
-  |> List.map (fun y -> (xmin,y))
 
 
 let axis_x vp = 
@@ -181,28 +182,33 @@ let glyphs = [ 53; 72; 89; 82; 79; 87; 4 ]
 (*
 http://caml.inria.fr/pub/docs/manual-ocaml/libref/Printf.html
 *)
-
-
+(*
+let sc vp a = Viewport.scale_x vp a
+*)
 let fa_lab_x accu position =
   I.blend (I.move position (
-      let font = { open_sans_xbold with Font.size = 0.2 } in
-      let text = Printf.sprintf "%g" (-.(V2.x position)) in 
-    I.const Color.black >> I.cut_glyphs ~text font glyphs
-    )) accu 
+      let font = { open_sans_xbold with Font.size = 0.15 } in
+      let text = Printf.sprintf "%g"  (V2.x position)   in 
+      I.const Color.black >> I.cut_glyphs ~text font glyphs >>  I.move(V2.v (-0.22) (-0.2))
+    )) accu
+
 
 
 
 let fa_lab_y accu position = 
   I.blend (I.move  position (
-            let font = { open_sans_xbold with Font.size = 0.2 } in
-            let text = Printf.sprintf "%g"  (-.(V2.y position) ) in 
-            I.const Color.black >> I.cut_glyphs ~text font glyphs 
+            let font = { open_sans_xbold with Font.size = 0.15 } in
+            let text = Printf.sprintf "%g"  (V2.y position)  in 
+            I.const Color.black >> I.cut_glyphs ~text font glyphs >> I.move(V2.v (-0.25) (-0.2))
           )) accu 
+
+(*-.(V2.y position)*)
+
 
 
 
 let label_x vp =
-  let (xmin, xmax) = Viewport.xlim vp in
+  let (xmin, xmax) =( Viewport.xlim vp ) in
   let (ymin, _) = Viewport.ylim vp in
   let data_points = points_x xmin xmax ymin 10 in 
   let plot_points =
@@ -211,11 +217,12 @@ let label_x vp =
   in
   List.fold_left 
     fa_lab_x
-    (axis vp)  
+    ( axis vp)
     plot_points
 
+
 let label_y vp = 
-   let (ymin, ymax) = Viewport.ylim vp in
+  let (ymin,ymax) = Viewport.ylim vp in
   let (xmin,_) = Viewport.xlim vp in
   let data_points = points_y xmin ymin ymax 10 in 
   let plot_points =
@@ -223,11 +230,12 @@ let label_y vp =
     |> List.map (fun p -> Viewport.scale vp p)  in
    List.fold_left 
      fa_lab_y
-     (axis vp)  
+     ( axis vp)
      plot_points
 
-let label vp = I.blend (label_x vp) (label_y vp)
 
+let label vp = I.blend (label_x vp) (label_y vp)
+(*creer nouvelle fnct a adapter pour afficher lkabel en s inspirant du passage de data a curve*)
  (*----------------------------------------------------*)
 let gray = I.const (Color.gray 0.5)
 let circle = P.empty >> P.circle P2.o 0.05
@@ -274,8 +282,8 @@ module Plot : sig
     
   val to_svg : t -> string -> unit
   val scatter_plot : (float * float) list -> t
-  val curve_plot : xmin:float -> xmax:float -> (float -> float) -> float -> t
-    
+  val curve_plot : xmin:float -> xmax:float -> (float -> float) -> float -> t   
+ val label_plot : xmin:float -> xmax:float -> (float -> float) -> float -> t
 end
 =
 struct 
@@ -296,9 +304,9 @@ struct
     let ylim = list_min_max (List.map snd l) in 
     let vp = Viewport.make ~xlim ~ylim () in 
     let image = 
-      I.blend
+    I.blend
         (Primitives.cloud vp l)      
-        (Primitives.axis vp) 
+        (Primitives.label vp) 
     in
     { 
       image ;
@@ -338,6 +346,23 @@ struct
       viewport = vp ;
     }
     
+
+  let label_plot ~xmin ~xmax f nstep = 
+    let l = table f xmin xmax ((xmax -. xmin) /. nstep ) in 
+    let xlim = list_min_max (List.map fst l) in
+    let ylim = list_min_max (List.map snd l) in 
+    let vp = Viewport.make ~xlim ~ylim () in 
+    let image = 
+      I.blend
+        (Primitives.axis vp)
+        (Primitives.label vp )
+    in
+    { 
+      image ;
+      viewport = vp ;
+    }
+    
+
 end
 
 
@@ -377,8 +402,8 @@ let () =
 let () =
   Plot.to_svg (Plot.curve_plot (0.) (10.) f_bis 100.) "curve_plot_f_bis2.svg"
 
-(*
-          
 
-let () = svg_of_usquare "label.svg" Box2.unit label
-*)
+
+let () =
+  Plot.to_svg (Plot.label_plot (0.) (1.) f_bis 100.) "label_plot_f_bis2.svg"
+
