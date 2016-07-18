@@ -45,8 +45,8 @@ struct
 
   let make
       ?(view=Size2.v 10. 10.)
-      ?(xmar=(1., 1.))
-      ?(ymar=(1. , 1.))
+      ?(xmar=(1. , 0.))
+      ?(ymar=(1. , 0.))
       ~xlim 
       ~ylim
       ()
@@ -87,7 +87,9 @@ module Primitives : sig
   
   val axis : Viewport.t -> image
 
-  val label : Viewport.t -> image
+  val points_y: float -> float ->float -> int -> (float * float) list
+
+  val label : Viewport.t -> (float * float) list-> image
 
   val cloud : Viewport.t -> (float * float) list -> image
 
@@ -123,6 +125,7 @@ let rec list_aux n i f =
 
 let list_init n f = list_aux n 0 f 
 
+
 let range a b n =
   let delta = (b -. a) /. float n in
   list_init n (fun i -> a  +. float i *. delta )
@@ -133,10 +136,14 @@ let points_x xmin xmax ymin n =
 
  
 let points_y xmin ymin ymax n =
-  (range ymin ymax n)
+  range ymin ymax n
   |> List.map (fun y -> (xmin,y))
 
 
+ (* let table f inf sup pas = 
+    let nstep = (sup -. inf) /. pas in
+    table_aux f inf sup nstep *)       
+                                
  (*
 let points_x xmin xmax ymin n =
   let delta = (xmax -.xmin) /. float n in
@@ -182,32 +189,36 @@ let glyphs = [ 53; 72; 89; 82; 79; 87; 4 ]
 (*
 http://caml.inria.fr/pub/docs/manual-ocaml/libref/Printf.html
 *)
-(*
+
 let sc vp a = Viewport.scale_x vp a
-*)
-let fa_lab_x accu position =
-  I.blend (I.move position (
-      let font = { open_sans_xbold with Font.size = 0.15 } in
-      let text = Printf.sprintf "%g"  (V2.x position)   in 
-      I.const Color.black >> I.cut_glyphs ~text font glyphs >>  I.move(V2.v (-0.22) (-0.2))
-    )) accu
 
 
+let float_to_point data = 
+  let point p = 
+    let x = fst (List.hd data) in
+    let y = snd (List.hd data) in 
+    P2.v x y in  
+list_init (List.length data) point
 
+ let fa_lab_x accu  position = 
+    I.blend (I.move position (
+        let font = { open_sans_xbold with Font.size = 0.15 } in
+        let text = Printf.sprintf "%g"  (P2.x position)  in 
+        I.const Color.black >> I.cut_glyphs ~text font glyphs(* >>  I.move(V2.v (-0.22) (-0.2))*)
+      )) accu
 
+(*prend une image et une position pour un un mettre le label*)
 let fa_lab_y accu position = 
   I.blend (I.move  position (
             let font = { open_sans_xbold with Font.size = 0.15 } in
-            let text = Printf.sprintf "%g"  (V2.y position)  in 
-            I.const Color.black >> I.cut_glyphs ~text font glyphs >> I.move(V2.v (-0.25) (-0.2))
+            let text = Printf.sprintf "%g"  (P2.y position)  in 
+            I.const Color.black >> I.cut_glyphs ~text font glyphs(* >> I.move(V2.v (-0.25) (-0.2))*)
           )) accu 
 
 (*-.(V2.y position)*)
 
 
-
-
-let label_x vp =
+let label_x vp l =
   let (xmin, xmax) =( Viewport.xlim vp ) in
   let (ymin, _) = Viewport.ylim vp in
   let data_points = points_x xmin xmax ymin 10 in 
@@ -220,9 +231,9 @@ let label_x vp =
     ( axis vp)
     plot_points
 
-
-let label_y vp = 
-  let (ymin,ymax) = Viewport.ylim vp in
+(*
+let label_y vp l = 
+let (ymin,ymax) = Viewport.ylim vp in
   let (xmin,_) = Viewport.xlim vp in
   let data_points = points_y xmin ymin ymax 10 in 
   let plot_points =
@@ -232,9 +243,21 @@ let label_y vp =
      fa_lab_y
      ( axis vp)
      plot_points
+*)
+let label_y vp data_points = 
+let (ymin,ymax) = Viewport.ylim vp in
+  let (xmin,_) = Viewport.xlim vp in
+  let data_points = points_y xmin ymin ymax 10 in 
+  let plot_points =
+    data_points
+    |> List.map (fun p -> Viewport.scale vp p)  in
+  List.fold_left 
+     fa_lab_y
+     ( axis vp)
+     plot_points
+     
 
-
-let label vp = I.blend (label_x vp) (label_y vp)
+let label vp l = I.blend (label_x vp l) (label_y vp l)
 (*creer nouvelle fnct a adapter pour afficher lkabel en s inspirant du passage de data a curve*)
  (*----------------------------------------------------*)
 let gray = I.const (Color.gray 0.5)
@@ -306,7 +329,7 @@ struct
     let image = 
     I.blend
         (Primitives.cloud vp l)      
-        (Primitives.label vp) 
+        (Primitives.label vp l) 
     in
     { 
       image ;
@@ -328,17 +351,22 @@ struct
     with Sys_error e -> prerr_endline e
 
   
-  let rec table f inf sup pas = if inf > sup then [] else (inf , f inf) :: table f (inf +. pas) sup pas  
-                                                            
+  let rec table_aux f inf sup pas =
+    if inf >= sup then [] else (inf , f inf) :: table_aux f (inf +. pas) sup pas  
+
+  let table f inf sup pas = 
+    let nstep = (sup -. inf) /. pas in
+    table_aux f inf sup nstep        
+                                              
   (* nstep pour le nombre de pas entre xmin et xmax , plus c'est proche de 0 , moins la courbe sera lisse. Fixé à 100*)
   let curve_plot ~xmin ~xmax f nstep = 
-    let l = table f xmin xmax ((xmax -. xmin) /. nstep ) in 
+    let l =table f xmin xmax nstep in 
     let xlim = list_min_max (List.map fst l) in
     let ylim = list_min_max (List.map snd l) in 
     let vp = Viewport.make ~xlim ~ylim () in 
     let image = 
       I.blend
-        (Primitives.label vp)
+        (Primitives.label vp l)
         (Primitives.curve vp l)
     in
     { 
@@ -355,7 +383,7 @@ struct
     let image = 
       I.blend
         (Primitives.axis vp)
-        (Primitives.label vp )
+        (Primitives.label vp l)
     in
     { 
       image ;
@@ -379,7 +407,7 @@ let list_rand n f r = list_rand_aux n 0 f r
 let funct x = ( x +. 1. ) *. ( x +. 2. )
 let f_carre x = x *. x 
 
-let pi = 4.0 *. atan 1.0;;
+let pi = 4.0 *. atan 1.0
 (*f(x) = cos(pi.x).exp(x) sur [-1;1]*)
 let f_bis x = (cos ( pi *. x)) *. (exp x)
                
@@ -405,5 +433,52 @@ let () =
 
 
 let () =
-  Plot.to_svg (Plot.label_plot (0.) (1.) f_bis 100.) "label_plot_f_bis2.svg"
+  Plot.to_svg (Plot.label_plot (0.) (2.) funct 100.) "label_plot_f_bis2.svg"
 
+
+
+(*
+let label_x vp =
+  let (xmin, xmax) =( Viewport.xlim vp ) in
+  let (ymin, _) = Viewport.ylim vp in
+  let data_points = points_x xmin xmax ymin 10 in 
+  let plot_points =
+    data_points
+    |> List.map (fun p -> Viewport.scale vp p)
+  in 
+  let fa_lab_x accu  position = 
+    I.blend (I.move position (
+        let font = { open_sans_xbold with Font.size = 0.15 } in
+        let text = Printf.sprintf "%g" (sc vp (P2.x position) )  in 
+        I.const Color.black >> I.cut_glyphs ~text font glyphs(* >>  I.move(V2.v (-0.22) (-0.2))*)
+      )) accu in
+  List.fold_left 
+    fa_lab_x
+    ( axis vp)
+    plot_points
+*)
+
+
+(*
+let label_y vp = 
+  let (ymin,ymax) = Viewport.ylim vp in
+  let (xmin,_) = Viewport.xlim vp in
+  let data_points = points_y xmin ymin ymax 10 in 
+  let plot_points =
+    let dp = 
+      let b =  float_to_point data_points in
+      List.map (fun d -> P2.x d,P2.y d)  b in 
+    dp
+    |> List.map (fun p -> Viewport.scale vp p)  in
+  List.fold_left 
+    fa_lab_y
+    ( axis vp)
+    plot_points
+
+*)
+(*
+ let a =  
+   let data_points =points_y 0. 0. 10. 10 in
+   let b =  float_to_point data_points in
+   List.map (fun d -> P2.x d,P2.y d)  b
+   *)
