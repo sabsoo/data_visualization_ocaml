@@ -6,8 +6,6 @@ let list_init n f = list_aux n 0 f
     
 let abs a = -. a
 
-
-
 let is_div x n = if (mod_float x n) = 0. then true else false
 let delta a b n = (b -. a ) /. n
                   
@@ -21,7 +19,6 @@ let rec range a b n i =
 (*
 tests
 #  range 0. 20. 5. 0.;;
-
 - : float list = [0.; 4.; 8.; 12.; 16.; 20.]
 #   range 0. 10. 5. 0.;;
 - : float list = [0.; 2.; 4.; 6.; 8.; 10.]
@@ -29,13 +26,14 @@ tests
 - : float list = [0.; 5.; 10.; 15.]
 # range 0. 15. 5. 0.;;
 - : float list = [0.; 3.; 6.; 9.; 12.; 15.]
-
 *)        
 
 
 (*
 fonction qui appelle range si b - a est divisible par n
  et qui appelle un autre traitement sinon 
+
+la valeur max minimum doit etre 2 
 *)    
 let range_far_zero  a b n = 
   if (is_div (dt a b) n ) then
@@ -56,6 +54,14 @@ let range_far_zero  a b n =
 - : float list = [1.; 3.; 5.; 7.; 9.; 11.; 13.; 15.; 17.; 19.; 21.]
 # range_far_zero 1. 15. 3.;;
 - : float list = [1.; 6.; 11.; 16.]
+ range_far_zero 0. 5. 3.;;
+- : float list = [0.; 2.; 4.; 6.]
+range_far_zero 0. 3. 2.;;
+- : float list = [0.; 2.; 4.]
+# range_far_zero 6. 8. 2.;;
+- : float list = [6.; 7.; 8.]
+# range_far_zero 6.5 10. 6.;;
+- : float list = [6.5; 7.25; 8.; 8.75; 9.5; 10.25; 11.]
 *)
 
 
@@ -63,44 +69,31 @@ let range_far_zero  a b n =
 
 
 (*
-pour les valeurs proches de 0
+pour d = max - min proche de 0
 *)
+
+
+let rec max_list l = match l with 
+    [] -> invalid_arg "liste vide dans max_list"
+  |[a] -> a
+  |h::t -> max  h  (max_list t)
 
 (*
-let range_close_zero a b n =
-  let delta =
-    let d a b =  b -. a in 
-    (d a b )/. float n in
-  list_init n (fun i -> a  +. float i *. delta )
-    
+let max_list l = List.fold_left (fun x y -> if x < y then y else x) l 
+*)
+
+(*cas ou b - a < 2*)
+
+let c a b n i= max_list(range a b n i) *. 2. /. (mod_float n 2.)
+
+let rec range_close_zero_aux  a b n i = 
+   if i >= n then [] else
+      (a +. (c  a b n i) *. i) :: range_close_zero_aux a b n  (i +. 1.)
+
+
 (*
-let verif x y =assert ((d x y )> 0. && (d x y) < 0.5)
-*)
-let rec pretty_aux (x,y) n i e =
-  let d x y = y -. x in 
-  let c x y n = (d x y ) /. n in 
-  let a b c n= (c -. b /. n) +. 1. in
-  if (i>=n ) then []
-  else if ((d x y )> 0. && (d x y) < 0.5) then  [c x y n]
-  else 
-    (a x y n) :: pretty_aux (x,y) n (i +. 1.) (e +. ( c x y n))
-      
-  (*
-let pretty (x,y) n = 
-    if (x >= y) then pretty_aux (x,y) n n
-else pretty_aux(c,y) n 0.
-*)
-
-(*en supposant qu on ne passe pas de valeurs positives à negatives*)
-let abs a = if a >= 0.0 then a else -.a
-let fmax2 x y = max (abs x) (abs y)
-    
-let i_small = true
-let cell = 0.
-
-let small x y = 
-let delta = y -. x in 
-  if (delta ==y || delta == x)   then  cell = 1. 
-else cell = fmax2 x y 
-       
+let  range_close_zero a b n =
+   if (b -. a < 2. ) then
+     range_close_zero_aux  a b n 0.
+else  range a b n 0. 
 *)
