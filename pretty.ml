@@ -32,9 +32,6 @@ tests
 
 *)        
 
-let rec range_f i n =  if i > n then [] 
-  else  i :: range_f (i +. 1.) n  
-     
 
 (*
 fonction qui appelle range si b - a est divisible par n
@@ -43,11 +40,31 @@ fonction qui appelle range si b - a est divisible par n
 let range_far_zero  a b n = 
   if (is_div (dt a b) n ) then
     range a b n 0. 
-  else range_f 0. n 
+  else 
+     let max = b +. 1. in 
+    (* let min = a -. 1. in*)
+    range a max n 0.
+
+(*
+ range_far_zero 0. 9. 5.;;
+- : float list = [0.; 2.; 4.; 6.; 8.; 10.]
+# range_far_zero 0. 20. 2.;;
+- : float list = [0.; 10.; 20.]
+# range_far_zero 0. 20. 5.;;
+- : float list = [0.; 4.; 8.; 12.; 16.; 20.]
+# range_far_zero 1. 20. 10.;;
+- : float list = [1.; 3.; 5.; 7.; 9.; 11.; 13.; 15.; 17.; 19.; 21.]
+# range_far_zero 1. 15. 3.;;
+- : float list = [1.; 6.; 11.; 16.]
+*)
 
 
 
-(**pour les valeurs proches de 0*)
+
+
+(*
+pour les valeurs proches de 0
+*)
 
 (*
 let range_close_zero a b n =
