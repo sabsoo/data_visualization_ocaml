@@ -1,3 +1,47 @@
+module Notation_scientifique : sig
+  type ns
+
+ val make :
+   
+    mantisse:(float) ->
+    exposant:(int) ->
+    unit -> ns
+    
+ val get_mantisse : ns -> float 
+ val get_exposant : ns -> int
+ val notation: ns -> float * int
+ 
+  
+end 
+= struct 
+  type ns = {
+    mantisse :float;
+    exposant : int;
+
+  }
+  
+ let make    
+      ~mantisse
+      ~exposant
+      ()
+   = 
+   {
+     mantisse ;
+     exposant ;
+   }
+   
+let get_exposant ns = ns.exposant
+let get_mantisse ns = ns.mantisse
+let notation ns = (get_mantisse ns, get_exposant ns)
+
+
+end
+
+(*
+let nn ns = Notation_scientifique.make 2.3 3 ()
+let a ns =  Notation_scientifique.get_mantisse (nn ns)
+
+            *)
 let rec list_aux n i f =
   if i > n then [] 
   else f i :: list_aux n (i + 1) f
@@ -78,19 +122,32 @@ let rec max_list l = match l with
   |[a] -> a
   |h::t -> max  h  (max_list t)
 
+
+
+(*on cree un type notation scientifique avec la mantisse l'exposant et le couple mantisse exposant*)
+
+type ns = {
+  mantisse : float (* E [1 ; 10[*);
+  exposant : int  (* E Z*);
+  ns : float * int (* couple mantisse exposant *)
+}
+ let notation ns mant exp = {mantisse = mant; exposant = exp; ns = mant , exp}
+
+
+
 (*
 let max_list l = List.fold_left (fun x y -> if x < y then y else x) l 
 *)
 
 (*cas ou b - a < 2*)
-
+(*
 let c a b n i= max_list(range a b n i) *. 2. /. (mod_float n 2.)
 
 let rec range_close_zero_aux  a b n i = 
    if i >= n then [] else
       (a +. (c  a b n i) *. i) :: range_close_zero_aux a b n  (i +. 1.)
 
-
+*)
 (*
 let  range_close_zero a b n =
    if (b -. a < 2. ) then
