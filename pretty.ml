@@ -1,47 +1,49 @@
+
 module Notation_scientifique : sig
   type ns
-
- val make :
-   
+    
+  val make :
+    
     mantisse:(float) ->
     exposant:(int) ->
     unit -> ns
     
- val get_mantisse : ns -> float 
- val get_exposant : ns -> int
- val notation: ns -> float * int
- 
+  val get_mantisse : ns -> float 
+  val get_exposant : ns -> int
+  val notation: ns -> float * int
+                      
   
 end 
 = struct 
   type ns = {
-    mantisse :float;
-    exposant : int;
-
+    mantisse :float; (* E [1 ; 10[*)
+    exposant : int; (* E Z*)
   }
   
- let make    
+  let make    
       ~mantisse
       ~exposant
       ()
-   = 
-   {
-     mantisse ;
-     exposant ;
-   }
-   
-let get_exposant ns = ns.exposant
-let get_mantisse ns = ns.mantisse
-let notation ns = (get_mantisse ns, get_exposant ns)
-
-
+    = 
+    {
+      mantisse ;
+      exposant ;
+    }
+    
+  let get_exposant ns = ns.exposant
+  let get_mantisse ns = ns.mantisse
+  let notation ns = (get_mantisse ns, get_exposant ns)
+                    
+  
 end
 
+let exemple_ns mantisse exposant= Notation_scientifique.make mantisse exposant ()
+let notation mantisse exposant =  Notation_scientifique.notation (exemple_ns mantisse exposant)
 (*
-let nn ns = Notation_scientifique.make 2.3 3 ()
-let a ns =  Notation_scientifique.get_mantisse (nn ns)
+# notation 0.264 (-5);;
+- : float * int = (0.264, -5)
+*)
 
-            *)
 let rec list_aux n i f =
   if i > n then [] 
   else f i :: list_aux n (i + 1) f
@@ -51,24 +53,25 @@ let list_init n f = list_aux n 0 f
 let abs a = -. a
 
 let is_div x n = if (mod_float x n) = 0. then true else false
-let delta a b n = (b -. a ) /. n
+let pas a b n = (b -. a ) /. n
                   
-let dt a b = b -. a      
+let delta a b = b -. a      
 
 (*cas ou b-a est divisible par n *)
-let rec range a b n i = 
- (* let pas =  ((delta a b n) *. i) in*)
+let rec range_aux a b n i = 
   if i > n then [] 
-  else (a +. (delta a b n) *. i) :: range a b n  (i +. 1.)  
+  else (a +. (pas a b n) *. i) :: range_aux a b n  (i +. 1.)  
+
+let range a b n = range_aux a b n 0.
 (*
 tests
-#  range 0. 20. 5. 0.;;
+#  range 0. 20. 5.;;
 - : float list = [0.; 4.; 8.; 12.; 16.; 20.]
-#   range 0. 10. 5. 0.;;
+#   range 0. 10. 5.;;
 - : float list = [0.; 2.; 4.; 6.; 8.; 10.]
-# range 0. 15. 3. 0.;;
+# range 0. 15. 3.;;
 - : float list = [0.; 5.; 10.; 15.]
-# range 0. 15. 5. 0.;;
+# range 0. 15. 5.;;
 - : float list = [0.; 3.; 6.; 9.; 12.; 15.]
 *)        
 
@@ -80,12 +83,12 @@ fonction qui appelle range si b - a est divisible par n
 la valeur max minimum doit etre 2 
 *)    
 let range_far_zero  a b n = 
-  if (is_div (dt a b) n ) then
-    range a b n 0. 
+  if (is_div (delta a b) n ) then
+    range a b n  
   else 
      let max = b +. 1. in 
     (* let min = a -. 1. in*)
-    range a max n 0.
+    range a max n 
 
 (*
  range_far_zero 0. 9. 5.;;
@@ -109,9 +112,6 @@ range_far_zero 0. 3. 2.;;
 *)
 
 
-
-
-
 (*
 pour d = max - min proche de 0
 *)
@@ -121,36 +121,50 @@ let rec max_list l = match l with
     [] -> invalid_arg "liste vide dans max_list"
   |[a] -> a
   |h::t -> max  h  (max_list t)
-
-
-
-(*on cree un type notation scientifique avec la mantisse l'exposant et le couple mantisse exposant*)
-
-type ns = {
-  mantisse : float (* E [1 ; 10[*);
-  exposant : int  (* E Z*);
-  ns : float * int (* couple mantisse exposant *)
-}
- let notation ns mant exp = {mantisse = mant; exposant = exp; ns = mant , exp}
-
-
-
 (*
 let max_list l = List.fold_left (fun x y -> if x < y then y else x) l 
 *)
 
-(*cas ou b - a < 2*)
-(*
-let c a b n i= max_list(range a b n i) *. 2. /. (mod_float n 2.)
 
-let rec range_close_zero_aux  a b n i = 
-   if i >= n then [] else
-      (a +. (c  a b n i) *. i) :: range_close_zero_aux a b n  (i +. 1.)
+let u = [1;2;5;10]
 
-*)
+
+
 (*
-let  range_close_zero a b n =
-   if (b -. a < 2. ) then
-     range_close_zero_aux  a b n 0.
-else  range a b n 0. 
+#  offset k 0.15 0.65;;
+- : float = 0.5
+#  offset k 0.15 0.65;;
+- : float = 1.
+#  offset k 0.15 0.65;;
+- : float = 2.5
+#  offset k 0.15 0.65;;
+- : float = 5.
 *)
+
+
+let rec range_off a b n pas i = 
+if i > n then [] 
+else a+.(pas *. i) :: range_off a b n pas (i +.1.)
+
+let range_offset u a b n = 
+  let k a b= floor(log10 (delta a b)) in 
+  let offset_a =
+    floor ( a /. (u *. 10.** (k a b))) *. u *. 10.**(k a b) in 
+  let offset_b =
+    ceil ( b /. (u *.  10.** (k a b))) *. u *. 10.**(k a b) in
+   let new_a = a -. offset_a in
+  let new_b = b -. offset_b in  
+  let pas = (new_b -. new_a) /. n in (offset_a,offset_b, (k a b))
+ (* range_off new_a new_b n pas 0.*)
+
+
+(*
+ let k a b= log10 (delta a b) 
+let offset_b candidat a b =  (floor ( b /. (candidat *.( 10.**(k a b))))) *. (candidat *. (10.**(k a b)))
+let list_offset u a b i = List.map (offset_b a b) u  
+ 
+let rec best_offset l = match l with 
+    [] -> invalid_arg "liste vide dans max_list"
+  |[a] -> a
+  |h::t -> max h (best_offset t)*)
+

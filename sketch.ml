@@ -1,7 +1,10 @@
 
 (*
+
 #use "topfind";;
 #require "vg.svg";;
+
+
   ocamlfind ocamlopt -package gg,vg,vg.svg \
                      -linkpkg -o sketch.native sketch.ml && ./sketch.native
 *)
